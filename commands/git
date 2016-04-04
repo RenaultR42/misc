@@ -1,0 +1,9 @@
+# Repo
+
+## Download specific changes manually
+repo download -c cvms/dau-apps 1147/10 1216
+
+# Git
+
+## Prepare patch with specific commit to send by email
+git format-patch --stdout -s -1 65b48bf1c77801c210bf93c07bc7f513efdbcbb5 > gs1662.patch

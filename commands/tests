@@ -1,0 +1,2 @@
+# To record sound file from default misc device file
+arecord -f S16_LE -c 1 -r 16000 /mnt/

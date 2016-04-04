@@ -1,0 +1,5 @@
+# Refresh NFS' exports
+exportfs -ar
+
+# Remove all .o files (when the makefile is very bad...)
+find . -type f -name '*.o' -exec rm {} +
