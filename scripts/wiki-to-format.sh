@@ -28,7 +28,7 @@ if [ "$FORMAT" == "markdown" ]; then
 	sed -i "s/''\(.*\)''/_\1_/g" $FILE_DST
 
 	# Titles
-	sed -i "s/==\(.*\)==/#\1/ #g" $FILE_DST
+	sed -i "s/==\(.*\)==/#\1/ #/g" $FILE_DST
 	sed -i "s/===\(.*\)===/##\1 ##/g" $FILE_DST
 	sed -i "s/====\(.*\)====/###\1 ###/g" $FILE_DST
 
