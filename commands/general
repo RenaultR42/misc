@@ -3,3 +3,14 @@ exportfs -ar
 
 # Remove all .o files (when the makefile is very bad...)
 find . -type f -name '*.o' -exec rm {} +
+
+# To do a Fedora upgrade with installation during this user session
+dnf install dnf-plugin-system-upgrade
+dnf upgrade && dnf clean all
+dnf --releasever=$VERSION --setopt=deltarpm=false distro-sync --nogpgcheck
+
+# Todo a Fedora upgrade with installation offline (after a reboot)
+dnf install dnf-plugin-system-upgrade
+dnf upgrade && dnf clean all
+dnf system-upgrade download --releasever=$VERSION
+dnf system-upgrade reboot
