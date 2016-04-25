@@ -33,7 +33,7 @@ fi
 dnf -y upgrade
 
 dnf -y groupinstall "Fedora Workstation"
-dnf -y install emacs emacs-goodies emacs-terminal emacs-w3m mpd ncmpcpp ncmpc vlc mplayer-gui mencoder nano thunderbird\* gajim gstreamer\* ffmpeg\* gpm xvidcore python-farsight python-crypto --exclude=gstreamer-plugins-bad-free-extras $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install vlc mplayer-gui mencoder thunderbird\* gstreamer\*-plugins*\ ffmpeg\* gpm xvidcore --exclude=\*docs $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 # To have only real Free Software
 #dnf -y remove *firmware* linuxdoc-tools
@@ -50,13 +50,13 @@ dnf -y groupinstall "Outils de développement et bibliothèques pour C" "Outils 
 dnf -y install gcc gcc-c++ wget git-gui git-tools git-email openssl-devel ncurses-devel glibc-devel linuxdoc\* kernel-tools kernel-doc kernel-devel kernel-headers $NO_DEVEL $SKIP_MISSING_PACKAGE
 dnf -y install texinfo makeinfo yacc bison flex automake aclocal autoconf xxd glibc.i686 $NO_DEVEL $SKIP_MISSING_PACKAGE
 
-dnf -y install policycoreutils-gui blivet-gui beignet fedora-business-cards soundconverter theora-tools crack john aspell-$LANGUAGE hunspell-$LANGUAGE freetype-freeworld man-pages man-pages-$LANGUAGE dejavu\* acpi conky tor easytag acpitool screen stardict-dic-en system-config-\* linux_logo fedora-easy-karma fedora-ksplice fedora-packager bash\*completion dvipng libvirt\* qemu\* virt\* accountsdialog gparted samba-client p7zip\* uptimed rpmdevtools nmap wireshark iperf indent powertop htop iotop bpython python3 python-virtualenv python-virtualenvwrapper python-pip fedmsg\* gnome-\*fedmsg mediainfo $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install gajim easytag policycoreutils-gui blivet-gui beignet soundconverter theora-tools crack john aspell-$LANGUAGE hunspell-$LANGUAGE freetype-freeworld man-pages man-pages-$LANGUAGE dejavu\* acpi conky tor easytag acpitool screen stardict-dic-en system-config-\* linux_logo fedora-business-cards fedora-easy-karma fedora-ksplice fedora-packager bash\*completion dvipng libvirt\* qemu\* virt\* accountsdialog gparted samba-client p7zip\* uptimed rpmdevtools nmap wireshark iperf indent powertop htop iotop bpython python-farsight python-crypto python-virtualenv python-virtualenvwrapper python-pip fedmsg\* gnome-\*fedmsg mediainfo $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 # Games
 dnf -y install springlobby extremetuxracer bzflag clanbomber liquidwar\* fortune-mod frozen-bubble neverball pinball pingus powermanga scorched3d supertux\* torcs\* tuxpuck\* tuxtype2 warmux\* xmoto\* xscorch openalchemist celestia stellarium 0ad teeworlds $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 # Themes
-dnf -y install fedorainfi\* solar\* fedorawaves\* \*background\* leonidas\* \*fedora\*theme\* plymouth\* grub2-starfield-theme bluecurve-\*theme grub-customizer $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install \*-backgrounds-gnome solar-backgrounds astronomy-backgrounds gears-backgrounds constantine-backgrounds fedorainfinity-backgrounds desktop-backgrounds-waves neon-backgrounds leonidas\* plymouth-theme-\* bluecurve-gtk-themes bluecurve-cursor-theme bluecurve-icon-theme grub2-starfield-theme grub-customizer $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 # French language
 dnf langinstall fr

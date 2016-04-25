@@ -12,7 +12,7 @@ fi
 SD="/mnt"
 REPO="/home/Renault/Documents/CVMS/code"
 
-UBOOT="$REPO/rootfs/platform-dau/images"
+UBOOT="$REPO/SD"
 UBOOT_NOR="$REPO/repo/cvms-dau-boot-develop/rootfs/platform-dau/images"
 UBOOT_AUTO_NOR="$REPO/repo/cvms-dau-boot-master/rootfs/platform-dau/images"
 UBOOT_AUTO="$REPO/repo/cvms-dau-boot-sd-master/rootfs/platform-dau/images"

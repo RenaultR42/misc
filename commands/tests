@@ -1,2 +1,5 @@
 # To record sound file from default misc device file
 arecord -f S16_LE -c 1 -r 16000 /mnt/
+
+# To convert a video stream with gstreamer with hardware acceleration of Tegra K1
+gst-launch-0.10 filesrc location=$FILESRC.avi ! avidemux ! "video/x-raw-yuv,width=(int)800,height=(int)600,format=(fourcc)I420" ! nvvidconv ! "video/x-nv-yuv" ! nv_omx_h264enc low-latency=true ! qtmux ! filesink location=$FILEDST.mp4 -e
