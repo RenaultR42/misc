@@ -1,0 +1,72 @@
+From 382d89f597fea7dd026d0b8a65703740a52bbbcb Mon Sep 17 00:00:00 2001
+From: Charles-Antoine Couret <renault at fedoraproject.org>
+Date: Tue, 5 Apr 2016 14:28:36 +0200
+Subject: kernel-tests: [PATCH] Add script shell wrapper to check if the wanted
+ test was not tested for current version
+
+Patch updated
+
+>From 8627ee25c1f95e527d6b9a37e13a19440069889c Mon Sep 17 00:00:00 2001
+From: Charles-Antoine Couret <charles-antoine.couret(a)nexvision.fr>
+Date: Mon, 4 Apr 2016 10:34:33 +0200
+Subject: [PATCH] Add option to check duplication of current test before to
+ execute it, if it is not executed with the current kernel.
+
+It should avoid to verify that manually before executing the test
+(or to execute twice the test).
+
+Signed-off-by: Charles-Antoine Couret <charles-antoine.couret(a)nexvision.fr>
+---
+ config.example |  3 +++
+ runtests.sh    | 14 ++++++++++++++
+ 2 files changed, 17 insertions(+)
+
+diff --git a/config.example b/config.example
+index 0ed8c40..dd76142 100644
+--- a/config.example
++++ b/config.example
+@@ -7,6 +7,9 @@ submit=none
+ # submit=anonymous
+ # submit=authenticated
+ 
++# Check duplication tests
++# disable_retest=y
++
+ # Check Signature for Secure Boot
+ # checksig=y
+ # validsig="Fedora Secure Boot Signer"
+diff --git a/runtests.sh b/runtests.sh
+index abf1571..f3376df 100755
+--- a/runtests.sh
++++ b/runtests.sh
+@@ -11,6 +11,7 @@ cleanrun=PASS
+ failedtests=None
+ commit=n
+ commithook=/usr/bin/true
++disable_retest=n
+ 
+ if [ -f ./.config ]; then
+ 	source ./.config
+@@ -36,6 +37,19 @@ if [ ! -d "$logdir" ] ; then
+ 	mkdir $logdir
+ fi
+ 
++if [ "$disable_retest" == "y" ]; then
++	# Check if wanted test has been executed with current kernel version
++	for file in $(find $logdir -name \*.log.txt); do
++		version_tested=$(cat $file | sed -n 3p | cut -d ' ' -f 2)
++		test_executed=$(cat $file | sed -n 2p | cut -d ' ' -f 3)
++
++		if [ "$version_tested" == "$kver" -a "$test_executed" == "$testset" ]; then
++			echo "The current kernel was already tested with this test, abort."
++			exit 0
++		fi
++	done
++fi
++
+ args=y
+ 
+ while [ $args = y ]
+-- 
+cgit v0.12
+
