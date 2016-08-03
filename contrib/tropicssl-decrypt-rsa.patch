@@ -1,0 +1,667 @@
+diff -Naur a/include/tropicssl/rsa.h b/include/tropicssl/rsa.h
+--- a/include/tropicssl/rsa.h	2013-10-15 16:40:55.000000000 +0200
++++ b/include/tropicssl/rsa.h	2014-06-05 10:23:20.961761000 +0200
+@@ -82,6 +82,10 @@
+     "\x30\x21\x30\x09\x06\x05\x2B\x0E\x03"  \
+     "\x02\x1A\x05\x00\x04\x14"
+ 
++#define ASN1_HASH_SHA256                    \
++    "\x30\x11\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x00"  \
++    "\x05\x00\x04\x00"
++
+ /**
+  * \brief          RSA context structure
+  */
+diff -Naur a/library/rsa.c b/library/rsa.c
+--- a/library/rsa.c	2013-10-15 16:40:55.000000000 +0200
++++ b/library/rsa.c	2014-06-24 15:30:02.807864500 +0200
+@@ -398,12 +398,15 @@
+ 		case RSA_SHA1:
+ 			nb_pad = olen - 3 - 35;
+ 			break;
++		case RSA_SHA256:
++			nb_pad = olen - 3 - 51;
++			break;
+ 
+ 		default:
+ 			return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
+ 		}
+ 
+-		if (nb_pad < 8)
++		if (nb_pad < 8 || nb_pad > olen)
+ 			return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
+ 
+ 		*p++ = 0;
+@@ -446,6 +449,14 @@
+ 		memcpy(p + 15, hash, 20);
+ 		break;
+ 
++	case RSA_SHA256:
++		memcpy(p, ASN1_HASH_SHA256, 19);
++		memcpy(p + 19, hash, 32);
++		p[1] += 32; 
++		p[14] = 1; 
++		p[18] += 32;
++		break;
++
+ 	default:
+ 		return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
+ 	}
+@@ -458,18 +469,19 @@
+ /*
+  * Do an RSA operation and check the message digest
+  */
+-int rsa_pkcs1_verify(rsa_context * ctx,
++int rsa_pkcs1_verify(rsa_context *ctx,
+ 		     int mode,
+ 		     int hash_id,
+ 		     int hashlen, unsigned char *hash, unsigned char *sig)
+ {
+-	int ret, len, siglen;
++	int ret;
++	size_t len, siglen;
+ 	unsigned char *p, c;
+ 	unsigned char buf[512];
+ 
+ 	siglen = ctx->len;
+ 
+-	if (siglen < 16 || siglen > (int)sizeof(buf))
++	if (siglen < 16 || siglen > sizeof(buf))
+ 		return (TROPICSSL_ERR_RSA_BAD_INPUT_DATA);
+ 
+ 	ret = (mode == RSA_PUBLIC)
+@@ -493,45 +505,57 @@
+ 			p++;
+ 		}
+ 		p++;
+-		break;
+ 
+-	default:
++		len = siglen - (p - buf);
+ 
+-		return (TROPICSSL_ERR_RSA_INVALID_PADDING);
+-	}
++		if (len == 34) {
++			c = p[13];
++			p[13] = 0;
++
++			if (memcmp(p, ASN1_HASH_MDX, 18) != 0)
++				return (TROPICSSL_ERR_RSA_VERIFY_FAILED);
+ 
+-	len = siglen - (int)(p - buf);
++			if ((c == 2 && hash_id == RSA_MD2) ||
++			    (c == 4 && hash_id == RSA_MD4) ||
++			    (c == 5 && hash_id == RSA_MD5)) {
++				if(memcmp(p + 18, hash, 16) == 0) 
++					return (0);
++				else
++					return (TROPICSSL_ERR_RSA_VERIFY_FAILED);
++			}
++		}
+ 
+-	if (len == 34) {
+-		c = p[13];
+-		p[13] = 0;
+-
+-		if (memcmp(p, ASN1_HASH_MDX, 18) != 0)
+-			return (TROPICSSL_ERR_RSA_VERIFY_FAILED);
+-
+-		if ((c == 2 && hash_id == RSA_MD2) ||
+-		    (c == 4 && hash_id == RSA_MD4) ||
+-		    (c == 5 && hash_id == RSA_MD5)) {
+-			if (memcmp(p + 18, hash, 16) == 0)
++		if (len == 35 && hash_id == RSA_SHA1) {
++			if (memcmp(p, ASN1_HASH_SHA1, 15) == 0 &&
++			    memcmp(p + 15, hash, 20) == 0)
+ 				return (0);
+ 			else
+ 				return (TROPICSSL_ERR_RSA_VERIFY_FAILED);
+ 		}
+-	}
+ 
+-	if (len == 35 && hash_id == RSA_SHA1) {
+-		if (memcmp(p, ASN1_HASH_SHA1, 15) == 0 &&
+-		    memcmp(p + 15, hash, 20) == 0)
+-			return (0);
+-		else
+-			return (TROPICSSL_ERR_RSA_VERIFY_FAILED);
+-	}
++		if (len == 19 + 32 && p[14] == 1 && hash_id == RSA_SHA256) {
++			c = p[1] - 17;
++			p[1] = 17;
++			p[14] = 0;
++
++			if (p[18] == c &&
++			    memcmp(p, ASN1_HASH_SHA256, 18) == 0 &&
++			    memcmp(p + 19, hash, c) == 0)
++				return (0);
++			else
++				return (TROPICSSL_ERR_RSA_VERIFY_FAILED);
++		}
++
++		if (len == hashlen && hash_id == RSA_RAW) {
++			if (memcmp(p, hash, hashlen) == 0)
++				return (0);
++			else
++				return (TROPICSSL_ERR_RSA_VERIFY_FAILED);
++		}
+ 
+-	if (len == hashlen && hash_id == RSA_RAW) {
+-		if (memcmp(p, hash, hashlen) == 0)
+-			return (0);
+-		else
+-			return (TROPICSSL_ERR_RSA_VERIFY_FAILED);
++		break;
++	default:
++		return (TROPICSSL_ERR_RSA_INVALID_PADDING);
+ 	}
+ 
+ 	return (TROPICSSL_ERR_RSA_INVALID_PADDING);
+diff -Naur a/programs/Makefile b/programs/Makefile
+--- a/programs/Makefile	2013-10-15 16:40:55.000000000 +0200
++++ b/programs/Makefile	2014-07-03 10:12:29.402710000 +0200
+@@ -14,7 +14,8 @@
+ 	pkey/rsa_sign		pkey/rsa_verify		\
+ 	ssl/ssl_client1		ssl/ssl_client2		\
+ 	ssl/ssl_server		test/benchmark		\
+-	test/selftest		test/ssl_test
++	test/selftest		test/ssl_test		\
++	pkey/rsa_encrypt	pkey/rsa_decrypt
+ 
+ .SILENT:
+ 
+@@ -56,6 +57,14 @@
+ 	echo   "  CC    pkey/mpi_demo.c"
+ 	$(CC) $(CFLAGS) $(OFLAGS) pkey/mpi_demo.c    $(LDFLAGS) -o $@
+ 
++pkey/rsa_encrypt: pkey/rsa_encrypt.c ../library/libtropicssl.a
++	echo   "  CC    pkey/rsa_encrypt.c"
++	$(CC) $(CFLAGS) $(OFLAGS) pkey/rsa_encrypt.c    $(LDFLAGS) -o $@
++
++pkey/rsa_decrypt: pkey/rsa_decrypt.c ../library/libtropicssl.a
++	echo   "  CC    pkey/rsa_decrypt.c"
++	$(CC) $(CFLAGS) $(OFLAGS) pkey/rsa_decrypt.c    $(LDFLAGS) -o $@
++
+ pkey/rsa_genkey: pkey/rsa_genkey.c ../library/libtropicssl.a
+ 	echo   "  CC    pkey/rsa_genkey.c"
+ 	$(CC) $(CFLAGS) $(OFLAGS) pkey/rsa_genkey.c  $(LDFLAGS) -o $@
+diff -Naur a/programs/pkey/rsa_decrypt.c b/programs/pkey/rsa_decrypt.c
+--- a/programs/pkey/rsa_decrypt.c	1970-01-01 01:00:00.000000000 +0100
++++ b/programs/pkey/rsa_decrypt.c	2014-07-15 17:49:37.766846207 +0200
+@@ -0,0 +1,113 @@
++/*
++ *  RSA/SHA-1 decrypt creation program
++ *
++ *  Copyright (C) 2014  Charles-Antoine Couret <charles-antoine.couret@sfr.com>
++ */
++
++#ifndef _CRT_SECURE_NO_DEPRECATE
++#define _CRT_SECURE_NO_DEPRECATE 1
++#endif
++
++#include <string.h>
++#include <stdio.h>
++
++#include "tropicssl/rsa.h"
++
++#define BUF_LEN 255
++#define KEY_LEN 2048
++#define OUT_LEN 200
++
++int main(int argc, char *argv[])
++{
++    FILE *f, *fCrypt;
++    int ret = 0, eof, i = 0, c;
++    rsa_context rsa;
++    unsigned char in[KEY_LEN];
++    unsigned char out[OUT_LEN];
++    char filename[BUF_LEN];
++    int olen;
++
++    ret = 1;
++
++    if (argc != 3) {
++	printf("usage: rsa_decrypt <public_key_path> <filename>\n");
++
++#ifdef WIN32
++	printf("\n");
++#endif
++
++	goto exit;
++    }
++
++    printf("\n  . Reading public key from %s", argv[1]);
++    fflush(stdout);
++
++    /* Reading public key */
++    if ((f = fopen(argv[1], "rb")) == NULL) {
++	ret = 1;
++	printf(" failed\n  ! Could not open %s\n"
++	       "  ! Please run rsa_genkey first\n\n", argv[1]);
++	goto exit;
++    }
++
++    rsa_init(&rsa, RSA_PKCS_V15, 0, NULL, NULL);
++
++    if ((ret = mpi_read_file(&rsa.N, 16, f)) != 0 ||
++	(ret = mpi_read_file(&rsa.E, 16, f)) != 0) {
++	printf(" failed\n  ! mpi_read_file returned %d\n\n", ret);
++	goto exit;
++    }
++
++    rsa.len = (mpi_msb(&rsa.N) + 7) >> 3;
++
++    fclose(f);
++
++    /* Create filename */
++    f = fopen(argv[2], "wb");
++    sprintf(filename, "%s.crypt", argv[2]);
++    fCrypt = fopen(filename, "rb");
++
++    if (f != NULL && fCrypt != NULL) {
++	do {
++	    i = 0;
++
++	    /* Parse block encrypted with same size as key size */
++	    while (i < sizeof(in) && i < rsa.len
++		   && (eof = fscanf(fCrypt, "%02X", &c)) > 0)
++		in[i++] = (unsigned char) c;
++
++	    /* If error during block reading */
++	    if (eof < 0) {
++		ret = -42;
++		goto exit;
++	    }
++
++	    /* Block decrypt */
++	    if ((ret =
++		 rsa_pkcs1_decrypt(&rsa, RSA_PUBLIC, &olen, in, out,
++				   OUT_LEN - 1)) != 0) {
++		printf(" failed\n  ! rsa_pkcs1_decrypt returned %d\n\n",
++		       ret);
++		goto exit;
++	    }
++
++	    fwrite(out, sizeof(unsigned char), olen, f);
++
++	    /* If block decrypted smaller than max size allowed, it's the end of file and we can stop */
++	} while (olen == OUT_LEN - 1);
++    }
++
++
++    printf("\n  . Done (created \"%s\")\n\n", argv[2]);
++
++
++  exit:
++    fclose(f);
++    fclose(fCrypt);
++#ifdef WIN32
++    printf("  + Press Enter to exit this program.\n");
++    fflush(stdout);
++    getchar();
++#endif
++    return (ret);
++}
+diff -Naur a/programs/pkey/rsa_encrypt.c b/programs/pkey/rsa_encrypt.c
+--- a/programs/pkey/rsa_encrypt.c	1970-01-01 01:00:00.000000000 +0100
++++ b/programs/pkey/rsa_encrypt.c	2014-07-15 17:48:30.226892501 +0200
+@@ -0,0 +1,118 @@
++/*
++ *  RSA/SHA-1 encrypt creation program
++ *
++ *  Copyright (C) 2014  Charles-Antoine Couret <charles-antoine.couret@sfr.com>
++ */
++
++#ifndef _CRT_SECURE_NO_DEPRECATE
++#define _CRT_SECURE_NO_DEPRECATE 1
++#endif
++
++#include <string.h>
++#include <stdio.h>
++
++#include "tropicssl/rsa.h"
++
++#define BUF_LEN 255
++#define KEY_LEN 2048
++#define IN_LEN 200
++
++int main(int argc, char *argv[])
++{
++    FILE *f, *fCrypt;
++    int ret, eof, i;
++    rsa_context rsa;
++    unsigned char in[IN_LEN];
++    unsigned char out[KEY_LEN];
++    char filename[BUF_LEN];
++
++    ret = 1;
++
++    if (argc != 3) {
++	printf("usage: rsa_encrypt <private_key_path> <filename>\n");
++
++#ifdef WIN32
++	printf("\n");
++#endif
++
++	goto exit;
++    }
++
++    printf("\n  . Reading private key from %s", argv[1]);
++    fflush(stdout);
++
++    /* Reading private key */
++    if ((f = fopen(argv[1], "rb")) == NULL) {
++	ret = 1;
++	printf(" failed\n  ! Could not open %s\n"
++	       "  ! Please run rsa_genkey first\n\n", argv[1]);
++	goto exit;
++    }
++
++    rsa_init(&rsa, RSA_PKCS_V15, 0, NULL, NULL);
++
++    if ((ret = mpi_read_file(&rsa.N, 16, f)) != 0 ||
++	(ret = mpi_read_file(&rsa.E, 16, f)) != 0 ||
++	(ret = mpi_read_file(&rsa.D, 16, f)) != 0 ||
++	(ret = mpi_read_file(&rsa.P, 16, f)) != 0 ||
++	(ret = mpi_read_file(&rsa.Q, 16, f)) != 0 ||
++	(ret = mpi_read_file(&rsa.DP, 16, f)) != 0 ||
++	(ret = mpi_read_file(&rsa.DQ, 16, f)) != 0 ||
++	(ret = mpi_read_file(&rsa.QP, 16, f)) != 0) {
++	printf(" failed\n  ! mpi_read_file returned %d\n\n", ret);
++	goto exit;
++    }
++
++    rsa.len = (mpi_msb(&rsa.N) + 7) >> 3;
++
++    fclose(f);
++
++    /* Create filename.crypt */
++    f = fopen(argv[2], "rb");
++    sprintf(filename, "%s.crypt", argv[2]);
++    fCrypt = fopen(filename, "wb+");
++
++    eof = IN_LEN - 1;
++
++    if (f != NULL && fCrypt != NULL) { 
++	/* We encrypt block per block the file with block size of IN_LEN-1
++	   We stop when a block if smaller than max size allowed because it's the end of file */
++	while (eof == IN_LEN - 1
++	       && (eof =
++		   fread(in, sizeof(unsigned char), IN_LEN - 1, f)) > 0) {
++
++	    /* Block encryption */
++	    if ((ret =
++		 rsa_pkcs1_encrypt(&rsa, RSA_PRIVATE, eof, in,
++				   out)) != 0) {
++		printf(" failed\n  ! rsa_pkcs1_encrypt returned %d\n\n",
++		       ret);
++		goto exit;
++	    }
++
++	    /* If it passed, we write byte per byte the block encrypted */
++	    for (i = 0; i < rsa.len; i++)
++		fprintf(fCrypt, "%02X%s", out[i],
++			(i + 1) % 16 == 0 ? "\r\n" : " ");
++	}
++
++	/* If error during block reading */
++	if (eof < 0) {
++	    ret = -42;
++	    goto exit;
++	}
++    }
++
++    printf("\n  . Done (created \"%s\")\n\n", argv[2]);
++  exit:
++    fclose(f);
++    fclose(fCrypt);
++
++#ifdef WIN32
++    printf("  + Press Enter to exit this program.\n");
++    fflush(stdout);
++    getchar();
++#endif
++
++    return (ret);
++}
+diff -Naur a/programs/pkey/rsa_genkey.c b/programs/pkey/rsa_genkey.c
+--- a/programs/pkey/rsa_genkey.c	2013-10-15 16:40:55.000000000 +0200
++++ b/programs/pkey/rsa_genkey.c	2014-06-04 16:41:38.263839000 +0200
+@@ -44,7 +44,7 @@
+ #include "tropicssl/x509.h"
+ #include "tropicssl/rsa.h"
+ 
+-#define KEY_SIZE 1024
++#define KEY_SIZE 2048
+ #define EXPONENT 65537
+ 
+ int main(void)
+diff -Naur a/programs/pkey/rsa_sign.c b/programs/pkey/rsa_sign.c
+--- a/programs/pkey/rsa_sign.c	2013-10-15 16:40:55.000000000 +0200
++++ b/programs/pkey/rsa_sign.c	2014-06-10 09:22:12.051856635 +0200
+@@ -41,20 +41,22 @@
+ #include <stdio.h>
+ 
+ #include "tropicssl/rsa.h"
+-#include "tropicssl/sha1.h"
++#include "tropicssl/sha2.h"
++
++#define HASH_LEN 32
+ 
+ int main(int argc, char *argv[])
+ {
+ 	FILE *f;
+ 	int ret, i;
+ 	rsa_context rsa;
+-	unsigned char hash[20];
++	unsigned char hash[HASH_LEN];
+ 	unsigned char buf[512];
+ 
+ 	ret = 1;
+ 
+-	if (argc != 2) {
+-		printf("usage: rsa_sign <filename>\n");
++	if (argc != 3) {
++		printf("usage: rsa_sign <private_key_path> <filename>\n");
+ 
+ #ifdef WIN32
+ 		printf("\n");
+@@ -63,13 +65,13 @@
+ 		goto exit;
+ 	}
+ 
+-	printf("\n  . Reading private key from rsa_priv.txt");
++	printf("\n  . Reading private key from %s", argv[1]);
+ 	fflush(stdout);
+ 
+-	if ((f = fopen("rsa_priv.txt", "rb")) == NULL) {
++	if ((f = fopen(argv[1], "rb")) == NULL) {
+ 		ret = 1;
+-		printf(" failed\n  ! Could not open rsa_priv.txt\n"
+-		       "  ! Please run rsa_genkey first\n\n");
++		printf(" failed\n  ! Could not open %s\n"
++		       "  ! Please run rsa_genkey first\n\n", argv[1]);
+ 		goto exit;
+ 	}
+ 
+@@ -95,16 +97,16 @@
+ 	 * Compute the SHA-1 hash of the input file,
+ 	 * then calculate the RSA signature of the hash.
+ 	 */
+-	printf("\n  . Generating the RSA/SHA-1 signature");
++	printf("\n  . Generating the RSA/SHA-256 signature");
+ 	fflush(stdout);
+ 
+-	if ((ret = sha1_file(argv[1], hash)) != 0) {
+-		printf(" failed\n  ! Could not open or read %s\n\n", argv[1]);
++	if ((ret = sha2_file(argv[2], hash, 0)) != 0) {
++		printf(" failed\n  ! Could not open or read %s\n\n", argv[2]);
+ 		goto exit;
+ 	}
+ 
+-	if ((ret = rsa_pkcs1_sign(&rsa, RSA_PRIVATE, RSA_SHA1,
+-				  20, hash, buf)) != 0) {
++	if ((ret = rsa_pkcs1_sign(&rsa, RSA_PRIVATE, RSA_SHA256,
++				  HASH_LEN, hash, buf)) != 0) {
+ 		printf(" failed\n  ! rsa_pkcs1_sign returned %d\n\n", ret);
+ 		goto exit;
+ 	}
+@@ -112,20 +114,20 @@
+ 	/*
+ 	 * Write the signature into <filename>-sig.txt
+ 	 */
+-	memcpy(argv[1] + strlen(argv[1]), ".sig", 5);
++	memcpy(argv[2] + strlen(argv[2]), ".sig", 5);
+ 
+-	if ((f = fopen(argv[1], "wb+")) == NULL) {
++	if ((f = fopen(argv[2], "wb+")) == NULL) {
+ 		ret = 1;
+-		printf(" failed\n  ! Could not create %s\n\n", argv[1]);
++		printf(" failed\n  ! Could not create %s\n\n", argv[2]);
+ 		goto exit;
+ 	}
+ 
+ 	for (i = 0; i < rsa.len; i++)
+-		fprintf(f, "%02X%s", buf[i], (i + 1) % 16 == 0 ? "\r\n" : " ");
++		fprintf(f, "%02X", buf[i]);
+ 
+ 	fclose(f);
+ 
+-	printf("\n  . Done (created \"%s\")\n\n", argv[1]);
++	printf("\n  . Done (created \"%s\")\n\n", argv[2]);
+ 
+ exit:
+ 
+diff -Naur a/programs/pkey/rsa_verify.c b/programs/pkey/rsa_verify.c
+--- a/programs/pkey/rsa_verify.c	2013-10-15 16:40:55.000000000 +0200
++++ b/programs/pkey/rsa_verify.c	2014-06-24 15:10:20.763914023 +0200
+@@ -41,19 +41,21 @@
+ #include <stdio.h>
+ 
+ #include "tropicssl/rsa.h"
+-#include "tropicssl/sha1.h"
++#include "tropicssl/sha2.h"
++
++#define HASH_LEN 32
+ 
+ int main(int argc, char *argv[])
+ {
+-	FILE *f;
++	FILE *f, *sortie = NULL;
+ 	int ret, i, c;
+ 	rsa_context rsa;
+-	unsigned char hash[20];
++	unsigned char hash[HASH_LEN];
+ 	unsigned char buf[512];
+ 
+ 	ret = 1;
+-	if (argc != 2) {
+-		printf("usage: rsa_verify <filename>\n");
++	if (argc < 3 || argc > 4) {
++		printf("usage: rsa_verify <path_public_key> <filename> [filelog]\n");
+ 
+ #ifdef WIN32
+ 		printf("\n");
+@@ -62,12 +64,18 @@
+ 		goto exit;
+ 	}
+ 
+-	printf("\n  . Reading public key from rsa_pub.txt");
++	sortie = stdout;
++	if(argc == 4 && argv[3] != NULL && (sortie = fopen(argv[3], "a+")) == NULL) {
++		sortie = stdout;
++	}
++
++	fprintf(sortie, "argc : %d ; argv[0] : %s ; argv[1] : %s ; argv[2] : %s ; argv[3] : %s\n", argc, argv[0], argv[1], argv[2], argv[3]);
++	fprintf(sortie, "\n  . Reading public key from %s", argv[1]);
+ 	fflush(stdout);
+ 
+-	if ((f = fopen("rsa_pub.txt", "rb")) == NULL) {
+-		printf(" failed\n  ! Could not open rsa_pub.txt\n"
+-		       "  ! Please run rsa_genkey first\n\n");
++	if ((f = fopen(argv[1], "rb")) == NULL) {
++		fprintf(sortie, " failed\n  ! Could not open %s\n"
++			"  ! Please run rsa_genkey first\n\n", argv[1]);
+ 		goto exit;
+ 	}
+ 
+@@ -75,7 +83,7 @@
+ 
+ 	if ((ret = mpi_read_file(&rsa.N, 16, f)) != 0 ||
+ 	    (ret = mpi_read_file(&rsa.E, 16, f)) != 0) {
+-		printf(" failed\n  ! mpi_read_file returned %d\n\n", ret);
++		fprintf(sortie, " failed\n  ! mpi_read_file returned %d\n\n", ret);
+ 		goto exit;
+ 	}
+ 
+@@ -87,15 +95,18 @@
+ 	 * Extract the RSA signature from the text file
+ 	 */
+ 	ret = 1;
+-	i = strlen(argv[1]);
+-	memcpy(argv[1] + i, ".sig", 5);
++	i = strlen(argv[2]);
++	memcpy(argv[2] + i, ".sig", 5);
+ 
+-	if ((f = fopen(argv[1], "rb")) == NULL) {
+-		printf("\n  ! Could not open %s\n\n", argv[1]);
++	if ((f = fopen(argv[2], "rb")) == NULL) {
++		fprintf(sortie, "\n  ! Could not open %s\n\n", argv[2]);
+ 		goto exit;
+ 	}
+ 
+-	argv[1][i] = '\0', i = 0;
++	fprintf(sortie, "\nSignature : %s\n", argv[2]);
++	argv[2][i] = '\0', i = 0;
++	fprintf(sortie, "\nFichier : %s\n", argv[2]);
++	fflush(stdout);
+ 
+ 	while (fscanf(f, "%02X", &c) > 0 && i < (int)sizeof(buf))
+ 		buf[i++] = (unsigned char)c;
+@@ -103,29 +114,29 @@
+ 	fclose(f);
+ 
+ 	if (i != rsa.len) {
+-		printf("\n  ! Invalid RSA signature format\n\n");
++		fprintf(sortie, "\n  ! Invalid RSA signature format\n\n");
+ 		goto exit;
+ 	}
+ 
+ 	/*
+-	 * Compute the SHA-1 hash of the input file and compare
++	 * Compute the SHA-256 hash of the input file and compare
+ 	 * it with the hash decrypted from the RSA signature.
+ 	 */
+-	printf("\n  . Verifying the RSA/SHA-1 signature");
++	fprintf(sortie, "\n  . Verifying the RSA/SHA-256 signature");
+ 	fflush(stdout);
+ 
+-	if ((ret = sha1_file(argv[1], hash)) != 0) {
+-		printf(" failed\n  ! Could not open or read %s\n\n", argv[1]);
++	if ((ret = sha2_file(argv[2], hash, 0)) != 0) {
++		fprintf(sortie, " failed\n  ! Could not open or read %s\n\n", argv[2]);
+ 		goto exit;
+ 	}
+ 
+-	if ((ret = rsa_pkcs1_verify(&rsa, RSA_PUBLIC, RSA_SHA1,
+-				    20, hash, buf)) != 0) {
+-		printf(" failed\n  ! rsa_pkcs1_verify returned %d\n\n", ret);
++	if ((ret = rsa_pkcs1_verify(&rsa, RSA_PUBLIC, RSA_SHA256,
++				    HASH_LEN, hash, buf)) != 0) {
++		fprintf(sortie, " failed\n  ! rsa_pkcs1_verify returned %d\n\n", ret);
+ 		goto exit;
+ 	}
+ 
+-	printf("\n  . OK (the decrypted SHA-1 hash matches)\n\n");
++	fprintf(sortie, "\n  . OK (the decrypted SHA-256 hash matches)\n\n");
+ 
+ 	ret = 0;
+ 
+@@ -136,6 +147,6 @@
+ 	fflush(stdout);
+ 	getchar();
+ #endif
+-
++	fclose(sortie);
+ 	return (ret);
+ }

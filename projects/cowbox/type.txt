@@ -1,0 +1,6 @@
+battery_status=-
+battery_level=-
+network=cowbox-azerty
+nb_connected=0
+cpu_used=88.47
+ram_used=175420

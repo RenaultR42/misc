@@ -1,0 +1,402 @@
+#!/bin/sh
+for arg in "$@"; do
+    [ "$arg" = "--" ] && break
+    if [ "$arg" = "--mapped-uid" -o "$arg" = "--mapped-gid" ]; then
+        echo "This template can't be used for unprivileged containers." 1>&2
+        echo "You may want to try the \"download\" template instead." 1>&2
+        exit 1
+    fi
+done
+
+# Make sure the usual locations are in PATH
+export PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
+
+am_in_userns() {
+    [ -e /proc/self/uid_map ] || { echo no; return; }
+    [ "$(wc -l /proc/self/uid_map | awk '{ print $1 }')" -eq 1 ] || { echo yes; return; }
+    line=$(awk '{ print $1 " " $2 " " $3 }' /proc/self/uid_map)
+    [ "$line" = "0 0 4294967295" ] && { echo no; return; }
+    echo yes
+}
+
+in_userns=0
+[ $(am_in_userns) = "yes" ] && in_userns=1
+
+install_samba()
+{
+    rootfs=$1
+
+    tree="\
+$rootfs/var/run/lighttpd \
+$rootfs/var/empty/lighttpd \
+$rootfs/var/lib/empty/lighttpd \
+$rootfs/etc/init.d \
+$rootfs/etc/rc.d \
+$rootfs/etc/sysconfig/network-scripts \
+$rootfs/dev/shm \
+$rootfs/dev/pts \
+$rootfs/run/shm \
+$rootfs/run \
+$rootfs/var/run \
+$rootfs/proc \
+$rootfs/sys \
+$rootfs/bin \
+$rootfs/sbin \
+$rootfs/usr \
+$rootfs/usr/sbin \
+$rootfs/usr/lib \
+$rootfs/usr/bin \
+$rootfs/tmp \
+$rootfs/home \
+$rootfs/root \
+$rootfs/lib \
+$rootfs/usr/share/udhcpc"
+
+    mkdir -p $tree
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+
+    return 0
+}
+
+configure_samba()
+{
+    rootfs=$1
+#INIT
+	cat <<EOF >> $rootfs/etc/init.d/rcS
+#!/bin/sh
+/bin/mount -a
+udhcpc
+/etc/init.d/samba start 
+ /bin/sh
+EOF
+
+	cat <<EOF >> $rootfs/etc/inittab
+::sysinit:/etc/init.d/rcS
+tty1::respawn:/bin/getty -L tty1 115200 vt100
+console::askfirst:/bin/sh
+EOF
+
+	chmod 644 $rootfs/etc/inittab || return 1
+
+	ln -s /bin/yes $rootfs/sbin/init
+
+mkdir -p $rootfs$(dirname /etc/rc.common)
+cp -R /etc/rc.common $rootfs$(dirname /etc/rc.common)
+mkdir -p $rootfs$(dirname /lib/functions.sh)
+cp -R /lib/functions.sh $rootfs$(dirname /lib/functions.sh)
+mkdir -p $rootfs$(dirname /lib/functions)
+cp -R /lib/functions $rootfs$(dirname /lib/functions)
+mkdir -p $rootfs$(dirname /etc/services)
+cp -R /etc/services $rootfs$(dirname /etc/services)
+mkdir -p $rootfs$(dirname /etc/uci-defaults)
+cp -R /etc/uci-defaults $rootfs$(dirname /etc/uci-defaults)
+mkdir -p $rootfs$(dirname /lib/libuci.so)
+cp -R /lib/libuci.so $rootfs$(dirname /lib/libuci.so)
+mkdir -p $rootfs$(dirname /lib/config)
+cp -R /lib/config $rootfs$(dirname /lib/config)
+mkdir -p $rootfs$(dirname /usr/share/libubox)
+cp -R /usr/share/libubox $rootfs$(dirname /usr/share/libubox)
+which uci >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+	echo "uci executable is not accessible"
+	return 1
+fi
+
+cp $(which uci) $rootfs$(which uci)
+if [ $? -ne 0 ]; then
+	echo "failed to copy uci in the rootfs"
+	return 1
+fi
+
+for LIB in $(ldd $(which uci) | cut -d ' ' -f 3) ; do
+	cp $LIB $rootfs$LIB
+done
+
+
+    # executable
+    chmod 744 $rootfs/etc/init.d/rcS || return 1
+
+    # mount points
+    cat <<EOF >> $rootfs/etc/fstab
+shm   /dev/shm   tmpfs   defaults     0      0
+EOF
+
+    cat <<EOF > $rootfs/etc/passwd
+root:x:0:0:root:/root:/bin/sh
+EOF
+
+    cat <<EOF > $rootfs/etc/group
+root:x:0:root
+EOF
+
+#INCLUDE_SHELL
+which busybox >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+	echo "busybox executable is not accessible"
+	return 1
+fi
+
+cp $(which busybox) $rootfs$(which busybox)
+if [ $? -ne 0 ]; then
+	echo "failed to copy busybox in the rootfs"
+	return 1
+fi
+
+	cd $rootfs/bin
+	./busybox --help | grep 'Currently defined functions:' -A300 | \
+	grep -v 'Currently defined functions:' | tr , '\n' | \
+	xargs -n1 ln -s busybox
+	cd $rootfs
+
+	cd $rootfs/dev || return 1
+
+		for dev in tty console tty0 tty1 tty5 ram0 null random urandom; do
+			touch $rootfs/dev/$dev
+		done
+	cd /
+
+
+#NETWORK_CONFIG
+	cat <<EOF >> $rootfs/usr/share/udhcpc/default.script
+#!/bin/sh
+case "\$1" in
+	deconfig)
+		ip addr flush dev \$interface
+		;;
+
+	renew|bound)
+		if [ -n "\$router" ]; then
+			ip route del default 2> /dev/null
+		fi
+
+		if [ -n "\$broadcast" ]; then
+			broadcast="broadcast \$broadcast"
+		fi
+
+		ip addr add \$ip/\$mask \$broadcast dev \$interface
+
+		if [ -n "\$router" ]; then
+			ip route add default via \$router dev \$interface
+		fi
+
+		[ -n "\$domain" ] && echo search \$domain > /etc/resolv.conf
+		for i in \$dns ; do
+			echo nameserver \$i >> /etc/resolv.conf
+		done
+		;;
+esac
+exit 0
+EOF
+
+	chmod 744 $rootfs/usr/share/udhcpc/default.script
+
+
+#BINARIES_NAME
+which smbd >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+	echo "smbd executable is not accessible"
+	return 1
+fi
+
+cp $(which smbd) $rootfs$(which smbd)
+if [ $? -ne 0 ]; then
+	echo "failed to copy smbd in the rootfs"
+	return 1
+fi
+
+for LIB in $(ldd $(which smbd) | cut -d ' ' -f 3) ; do
+	cp $LIB $rootfs$LIB
+done
+
+	##s $rootfs/$(which smbd) $rootfs/sbin/init
+
+which smbpasswd >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+	echo "smbpasswd executable is not accessible"
+	return 1
+fi
+
+cp $(which smbpasswd) $rootfs$(which smbpasswd)
+if [ $? -ne 0 ]; then
+	echo "failed to copy smbpasswd in the rootfs"
+	return 1
+fi
+
+for LIB in $(ldd $(which smbpasswd) | cut -d ' ' -f 3) ; do
+	cp $LIB $rootfs$LIB
+done
+
+which nmbd >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+	echo "nmbd executable is not accessible"
+	return 1
+fi
+
+cp $(which nmbd) $rootfs$(which nmbd)
+if [ $? -ne 0 ]; then
+	echo "failed to copy nmbd in the rootfs"
+	return 1
+fi
+
+for LIB in $(ldd $(which nmbd) | cut -d ' ' -f 3) ; do
+	cp $LIB $rootfs$LIB
+done
+
+which samba_multicall >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+	echo "samba_multicall executable is not accessible"
+	return 1
+fi
+
+cp $(which samba_multicall) $rootfs$(which samba_multicall)
+if [ $? -ne 0 ]; then
+	echo "failed to copy samba_multicall in the rootfs"
+	return 1
+fi
+
+for LIB in $(ldd $(which samba_multicall) | cut -d ' ' -f 3) ; do
+	cp $LIB $rootfs$LIB
+done
+
+
+#PERSO_SCRIPT
+mkdir -p $rootfs/var/nmbd
+
+#CONFIG_FILES
+mkdir -p $rootfs$(dirname /etc/samba)
+cp -R /etc/samba $rootfs$(dirname /etc/samba)
+mkdir -p $rootfs$(dirname /etc/config/samba)
+cp -R /etc/config/samba $rootfs$(dirname /etc/config/samba)
+mkdir -p $rootfs$(dirname /etc/init.d/samba)
+cp -R /etc/init.d/samba $rootfs$(dirname /etc/init.d/samba)
+mkdir -p $rootfs$(dirname /etc/rc.d/S60samba)
+cp -R /etc/rc.d/S60samba $rootfs$(dirname /etc/rc.d/S60samba)
+
+#DATA_FILES
+
+
+    return 0
+}
+
+copy_configuration()
+{
+    path=$1
+    rootfs=$2
+    name=$3
+
+    grep -q "^lxc.rootfs" $path/config 2>/dev/null || echo "lxc.rootfs = $rootfs" >> $path/config
+cat <<EOF >> $path/config
+lxc.utsname = $name
+lxc.tty = 1
+lxc.pts = 1024
+lxc.kmsg = 0
+#CAPACITIES_SYSTEM
+#NETWORK_CONFIG_LXC
+lxc.network.type = veth
+lxc.network.flags = up
+lxc.network.link = br-lan
+lxc.network.name = eth0
+
+#SELINUX_RULE
+
+lxc.mount.entry = proc proc proc nodev,noexec,nosuid 0 0
+lxc.mount.entry = sysfs sys sysfs ro 0 0
+lxc.mount.entry = /dev dev none bind 0 0
+
+#MOUNT_POINTS
+#MOUNT_SOCKETS
+lxc.mount.entry = /run run none bind 0 0
+lxc.mount.entry = /var/run var/run none bind 0 0
+
+lxc.cgroup.devices.deny = a
+#DEVICE_FILES
+lxc.cgroup.devices.allow = c 5:0 rw 
+lxc.cgroup.devices.allow =  c 5:1 rw 
+lxc.cgroup.devices.allow =  c 4:0 rw 
+lxc.cgroup.devices.allow =  b 1:0 rw 
+lxc.cgroup.devices.allow =  c 1:3 rw 
+lxc.cgroup.devices.allow =  c 1:5 rw 
+lxc.cgroup.devices.allow =  c 1:8 rw 
+lxc.cgroup.devices.allow =  c 1:9 rw
+
+#CPU_SHARES
+lxc.cgroup.cpu.shares = 1024
+#MEMORY_LIMIT
+lxc.cgroup.memory.limit_in_bytes = 25M
+#BLKIO_WEIGHT
+#BLKIO_READ
+#BLKIO_WRITE
+#NET_PRIO
+EOF
+
+        return 0
+}
+
+usage()
+{
+    cat <<EOF
+$1 -h|--help -p|--path=<path>
+EOF
+    return 0
+}
+
+options=$(getopt -o hp:n: -l help,rootfs:,path:,name: -- "$@")
+if [ $? -ne 0 ]; then
+    usage $(basename $0)
+    exit 1
+fi
+eval set -- "$options"
+
+while true
+do
+    case "$1" in
+        -h|--help)      usage $0 && exit 0;;
+        -p|--path)      path=$2; shift 2;;
+        --rootfs)       rootfs=$2; shift 2;;
+        -n|--name)      name=$2; shift 2;;
+        --)             shift 1; break ;;
+        *)              break ;;
+    esac
+done
+
+if [ -z "$path" ]; then
+    echo "'path' parameter is required"
+    exit 1
+fi
+
+# detect rootfs
+config="$path/config"
+if [ -z "$rootfs" ]; then
+    if grep -q '^lxc.rootfs' $config 2>/dev/null ; then
+        rootfs=$(awk -F= '/^lxc.rootfs =/{ print $2 }' $config)
+    else
+        rootfs=$path/rootfs
+    fi
+fi
+
+install_samba $rootfs
+if [ $? -ne 0 ]; then
+    echo "failed to install samba's rootfs"
+    exit 1
+fi
+
+configure_samba $rootfs
+if [ $? -ne 0 ]; then
+    echo "failed to configure samba template"
+    exit 1
+fi
+
+copy_configuration $path $rootfs $name
+if [ $? -ne 0 ]; then
+    echo "failed to write configuration file"
+    exit 1
+fi
+

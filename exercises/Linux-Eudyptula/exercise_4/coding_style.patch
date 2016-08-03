@@ -1,0 +1,47 @@
+--- old/coding_style.c	2014-06-04 22:33:21.404156919 +0200
++++ new/coding_style.c	2014-06-11 00:24:13.870819051 +0200
+@@ -3,35 +3,31 @@
+ #include <asm/delay.h>
+ #include <linux/slab.h>
+ 
+-int do_work( int * my_int, int retval ) {
++int do_work(int *my_int, int retval)
++{
+ 	int x;
+-	int y=*my_int;
++	int y = *my_int;
+ 	int z;
+-	
+-	for(x=0;x< * my_int;++x) {
++
++	for (x = 0; x < *my_int; ++x)
+ 		udelay(10);
+-	}
+ 
+-	if (y < 10 )
+-		// That was a long sleep, tell userspace about it
++	if (y < 10)
+ 		printk("We slept a long time!");
+ 
+ 	z = x * y;
+-
+ 	return z;
+ }
+ 
+-int
+-my_init (void)
++int my_init(void)
+ {
+ 	int x = 10;
+ 
+ 	x = do_work(&x, x);
+-
+ 	return x;
+ }
+ 
+-void my_exit( void )
++void my_exit(void)
+ {
+ 	return;
+ }
+Signed-off-by: Charles-Antoine Couret <renault@fedoraproject.org>

@@ -1,0 +1,12 @@
+CONTAINER_NAME = minimal42
+BINARIES_NAME = lighttpd lol
+INIT = lighttpd -f /etc/lighttpd/lighttpd.conf ; lol
+NETWORK_CONFIG = yes
+CAPACITIES_SYSTEM = chown linux_immutable net_raw
+SELINUX_RULE = unconfined_u:unconfined_r:lxc_t:s0-s0:c0.c1023
+MOUNT_POINTS = /etc /bin /sbin
+MOUNT_SOCKETS = yes
+INCLUDE_SHELL = yes
+DEVICE_FILES = c 1:3 rw ; b 8:0 rw
+CONFIG_FILES = /etc/lighttpd
+DATA_FILES = /www

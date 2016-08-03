@@ -1,0 +1,29 @@
+--- old/helloworld.c	2014-06-04 22:44:30.166556371 +0200
++++ new/helloworld.c	2014-06-09 23:48:27.085620087 +0200
+@@ -6,15 +6,16 @@
+ 
+-int init_module(void) 
++int init_module(void)
+ {
+-  printk(KERN_DEBUG "Hello world.\n");
+-  return 0;
++	pr_debug("Hello world.\n");
++	return 0;
+ }
+ 
+-void cleanup_module(void) {
+-  printk(KERN_DEBUG "Goodbye\n");
++void cleanup_module(void)
++{
++	pr_debug("Goodbye\n");
+ }
+ 
+-MODULE_LICENSE("GPL");           
+-MODULE_AUTHOR(DRIVER_AUTHOR);    
+-MODULE_DESCRIPTION(DRIVER_DESC); 
++MODULE_LICENSE("GPL");
++MODULE_AUTHOR(DRIVER_AUTHOR);
++MODULE_DESCRIPTION(DRIVER_DESC);
+ module_init(init_module);
+
+Signed-off-by: Charles-Antoine Couret <renault@fedoraproject.org>

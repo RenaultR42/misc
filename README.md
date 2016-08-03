@@ -9,9 +9,12 @@ All of them are under GPLv3, except kernel modules which are under GPLv2.
 
 Tree explanations:
 
+* contrib: some patches about other Free Software project
 * commands: list of useful commands for Linux system or software development
 * configs: software configurations
+* exercises: exercises in C or other language, based on K&R ou Eudyptula challenge for example
 * modules: Linux kernel patches or modules with personal Eudyptula challenge results
+* projects: little personal or academic projects
 * scripts: miscellaneous working tools
 * tests: software to compute or test a feature
 

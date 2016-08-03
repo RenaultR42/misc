@@ -1,0 +1,38 @@
+diff -Naur a/libopkg/opkg_download.c b/libopkg/opkg_download.c
+--- a/libopkg/opkg_download.c	2010-01-12 04:33:42.000000000 +0100
++++ b/libopkg/opkg_download.c	2014-07-29 11:52:06.858151942 +0200
+@@ -328,7 +328,22 @@
+ int
+ opkg_verify_file (char *text_file, char *sig_file)
+ {
+-#if defined HAVE_GPGME
++#if defined HAVE_TROPICSSL
++    int ret;
++    char cmd[256];
++    char filename[256];
++    
++    sprintf(filename, "%s.sig", text_file);
++    rename(sig_file, filename);
++    sprintf(cmd, "tropicssl_rsa_verify /etc/opkg/rsa_pub.txt %s /var/log/tropicssl.log", text_file);
++    ret = system(cmd); 
++    
++    if (ret != 0)
++    	return -1;
++    else 
++    	return 0;  
++
++#elif defined HAVE_GPGME
+     if (conf->check_signature == 0 )
+         return 0;
+     int status = -1;
+--- a/libopkg/opkg_cmd.c.back	2010-02-16 00:00:18.000000000 +0100
++++ b/libopkg/opkg_cmd.c	2014-06-04 14:23:49.165944350 +0200
+@@ -155,7 +155,7 @@
+ 			    list_file_name);
+ 	  }
+ 	  free(url);
+-#if defined(HAVE_GPGME) || defined(HAVE_OPENSSL)
++#if defined(HAVE_GPGME) || defined(HAVE_OPENSSL) || defined(HAVE_TROPICSSL)
+           if (conf->check_signature) {
+               /* download detached signitures to verify the package lists */
+               /* get the url for the sig file */

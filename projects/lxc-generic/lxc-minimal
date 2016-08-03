@@ -1,0 +1,199 @@
+#!/bin/sh
+for arg in "$@"; do
+    [ "$arg" = "--" ] && break
+    if [ "$arg" = "--mapped-uid" -o "$arg" = "--mapped-gid" ]; then
+        echo "This template can't be used for unprivileged containers." 1>&2
+        echo "You may want to try the \"download\" template instead." 1>&2
+        exit 1
+    fi
+done
+
+# Make sure the usual locations are in PATH
+export PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
+
+am_in_userns() {
+    [ -e /proc/self/uid_map ] || { echo no; return; }
+    [ "$(wc -l /proc/self/uid_map | awk '{ print $1 }')" -eq 1 ] || { echo yes; return; }
+    line=$(awk '{ print $1 " " $2 " " $3 }' /proc/self/uid_map)
+    [ "$line" = "0 0 4294967295" ] && { echo no; return; }
+    echo yes
+}
+
+in_userns=0
+[ $(am_in_userns) = "yes" ] && in_userns=1
+
+install_CONTAINER_NAME()
+{
+    rootfs=$1
+
+    tree="\
+$rootfs/var/run/lighttpd \
+$rootfs/var/empty/lighttpd \
+$rootfs/var/lib/empty/lighttpd \
+$rootfs/etc/init.d \
+$rootfs/etc/rc.d \
+$rootfs/etc/sysconfig/network-scripts \
+$rootfs/dev/shm \
+$rootfs/dev/pts \
+$rootfs/run/shm \
+$rootfs/run \
+$rootfs/var/run \
+$rootfs/proc \
+$rootfs/sys \
+$rootfs/bin \
+$rootfs/sbin \
+$rootfs/usr \
+$rootfs/usr/sbin \
+$rootfs/usr/lib \
+$rootfs/usr/bin \
+$rootfs/tmp \
+$rootfs/home \
+$rootfs/root \
+$rootfs/lib \
+$rootfs/usr/share/udhcpc"
+
+    mkdir -p $tree
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+
+    return 0
+}
+
+configure_CONTAINER_NAME()
+{
+    rootfs=$1
+#INIT
+
+    # executable
+    chmod 744 $rootfs/etc/init.d/rcS || return 1
+
+    # mount points
+    cat <<EOF >> $rootfs/etc/fstab
+shm   /dev/shm   tmpfs   defaults     0      0
+EOF
+
+    cat <<EOF > $rootfs/etc/passwd
+root:x:0:0:root:/root:/bin/sh
+EOF
+
+    cat <<EOF > $rootfs/etc/group
+root:x:0:root
+EOF
+
+#INCLUDE_SHELL
+
+#NETWORK_CONFIG
+
+#BINARIES_NAME
+
+#PERSO_SCRIPT
+
+#CONFIG_FILES
+
+#DATA_FILES
+
+
+    return 0
+}
+
+copy_configuration()
+{
+    path=$1
+    rootfs=$2
+    name=$3
+
+    grep -q "^lxc.rootfs" $path/config 2>/dev/null || echo "lxc.rootfs = $rootfs" >> $path/config
+cat <<EOF >> $path/config
+lxc.utsname = $name
+lxc.stopsignal = SIGRTMIN+4
+lxc.haltsignal = SIGUSR1
+lxc.tty = 1
+lxc.pts = 1024
+lxc.kmsg = 0
+#CAPACITIES_SYSTEM
+#NETWORK_CONFIG_LXC
+
+#SELINUX_RULE
+
+lxc.mount.entry = proc proc proc nodev,noexec,nosuid 0 0
+lxc.mount.entry = sysfs sys sysfs ro 0 0
+lxc.mount.entry = /dev dev none bind 0 0
+
+#MOUNT_POINTS
+#MOUNT_SOCKETS
+
+lxc.cgroup.devices.deny = a
+#DEVICE_FILES
+
+#CPU_SHARES
+#MEMORY_LIMIT
+#BLKIO_WEIGHT
+#BLKIO_READ
+#BLKIO_WRITE
+#NET_PRIO
+EOF
+
+        return 0
+}
+
+usage()
+{
+    cat <<EOF
+$1 -h|--help -p|--path=<path>
+EOF
+    return 0
+}
+
+options=$(getopt -o hp:n: -l help,rootfs:,path:,name: -- "$@")
+if [ $? -ne 0 ]; then
+    usage $(basename $0)
+    exit 1
+fi
+eval set -- "$options"
+
+while true
+do
+    case "$1" in
+        -h|--help)      usage $0 && exit 0;;
+        -p|--path)      path=$2; shift 2;;
+        --rootfs)       rootfs=$2; shift 2;;
+        -n|--name)      name=$2; shift 2;;
+        --)             shift 1; break ;;
+        *)              break ;;
+    esac
+done
+
+if [ -z "$path" ]; then
+    echo "'path' parameter is required"
+    exit 1
+fi
+
+# detect rootfs
+config="$path/config"
+if [ -z "$rootfs" ]; then
+    if grep -q '^lxc.rootfs' $config 2>/dev/null ; then
+        rootfs=$(awk -F= '/^lxc.rootfs =/{ print $2 }' $config)
+    else
+        rootfs=$path/rootfs
+    fi
+fi
+
+install_CONTAINER_NAME $rootfs
+if [ $? -ne 0 ]; then
+    echo "failed to install CONTAINER_NAME's rootfs"
+    exit 1
+fi
+
+configure_CONTAINER_NAME $rootfs
+if [ $? -ne 0 ]; then
+    echo "failed to configure CONTAINER_NAME template"
+    exit 1
+fi
+
+copy_configuration $path $rootfs $name
+if [ $? -ne 0 ]; then
+    echo "failed to write configuration file"
+    exit 1
+fi
+
