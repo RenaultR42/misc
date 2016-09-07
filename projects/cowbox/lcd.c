@@ -238,9 +238,9 @@ void placeCursorLine(int numLine, gpio pins[], int nbPins)
 {
 	unsigned char data;
 
-	if(numLine == 0)
+	if (numLine == 0)
 		backToBegin(pins, nbPins, DURATION);
-	else if(numLine == 1) {
+	else if (numLine == 1) {
 		data = 0b000101;
 		refreshLCD(data, pins, nbPins, DURATION);
 		data = 0b000001;
@@ -250,7 +250,7 @@ void placeCursorLine(int numLine, gpio pins[], int nbPins)
 		refreshLCD(data, pins, nbPins, DURATION);
 		data = 0b000010;
 		refreshLCD(data, pins, nbPins, DURATION);
-	} else if(numLine == 3) {
+	} else if (numLine == 3) {
 		data = 0b001011;
 		refreshLCD(data, pins, nbPins, DURATION);
 		data = 0b000010;
@@ -262,10 +262,10 @@ void writeLine(int numLine, char *string, gpio pins[], int nbPins)
 	int i;
 	int size = strlen(string);
 
-	if(string != NULL) {
+	if (string != NULL) {
 		placeCursorLine(numLine, pins, nbPins);
 
-		for(i = 0; i < NB_CHAR_LINES && i < size; i++)
+		for (i = 0; i < NB_CHAR_LINES && i < size; i++)
 			charToLCD(string[i], pins, nbPins);
 	}
 }
