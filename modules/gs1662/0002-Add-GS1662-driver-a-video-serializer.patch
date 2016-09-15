@@ -1,7 +1,7 @@
-From 50e0d32ba46f0a38c510fda13fc3f7a141ba3325 Mon Sep 17 00:00:00 2001
+From 290053b438454e1cce6567d3c7557e329dfecf1e Mon Sep 17 00:00:00 2001
 From: Charles-Antoine Couret <charles-antoine.couret@nexvision.fr>
-Date: Fri, 15 Jul 2016 15:06:43 +0200
-Subject: [PATCH v4 2/2] Add GS1662 driver, a video serializer
+Date: Thu, 15 Sep 2016 15:40:47 +0200
+Subject: [PATCH v7 2/2] Add GS1662 driver, a video serializer
 To: linux-media@vger.kernel.org
 
 You can read datasheet here:
@@ -14,16 +14,35 @@ GS1662 driver is implemented as v4l2 subdev.
 
 Signed-off-by: Charles-Antoine Couret <charles-antoine.couret@nexvision.fr>
 ---
+ MAINTAINERS                |   7 +
  drivers/media/Kconfig      |   1 +
  drivers/media/Makefile     |   2 +-
  drivers/media/spi/Kconfig  |   9 +
  drivers/media/spi/Makefile |   1 +
  drivers/media/spi/gs1662.c | 472 +++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 484 insertions(+), 1 deletion(-)
+ 6 files changed, 491 insertions(+), 1 deletion(-)
  create mode 100644 drivers/media/spi/Kconfig
  create mode 100644 drivers/media/spi/Makefile
  create mode 100644 drivers/media/spi/gs1662.c
 
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 8c20323..2bfbf9d 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -5147,6 +5147,13 @@ L:	netdev@vger.kernel.org
+ S:	Maintained
+ F:	drivers/net/ethernet/aeroflex/
+ 
++GS1662 VIDEO SERIALIZER
++M:	Charles-Antoine Couret <charles-antoine.couret@nexvision.fr>
++L:	linux-media@vger.kernel.org
++T:	git git://linuxtv.org/media_tree.git
++S:	Maintained
++F:	drivers/media/spi/gs1662.c
++
+ GSPCA FINEPIX SUBDRIVER
+ M:	Frank Zago <frank@zago.net>
+ L:	linux-media@vger.kernel.org
 diff --git a/drivers/media/Kconfig b/drivers/media/Kconfig
 index a8518fb..d2fa6e7 100644
 --- a/drivers/media/Kconfig

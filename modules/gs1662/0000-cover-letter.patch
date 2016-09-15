@@ -1,7 +1,7 @@
-From 50e0d32ba46f0a38c510fda13fc3f7a141ba3325 Mon Sep 17 00:00:00 2001
+From 290053b438454e1cce6567d3c7557e329dfecf1e Mon Sep 17 00:00:00 2001
 From: Charles-Antoine Couret <charles-antoine.couret@nexvision.fr>
-Date: Thu, 21 Jul 2016 16:47:36 +0200
-Subject: [PATCH v4 0/2] Add GS1662 driver
+Date: Thu, 15 Sep 2016 17:27:58 +0200
+Subject: [PATCH v7 0/2] Add GS1662 driver
 To: linux-media@vger.kernel.org
 
 These patches add a driver for GS1662 component, a video serializer which
@@ -12,17 +12,13 @@ The associated documentation will be into another patchset to be
 Sphinx comaptible.
 
 This patchset add:
-	* rename V4L2_DV_FIRST_FIELD_EXTRA_LINE to V4L2_DV_FL_FIRST_FIELD_EXTRA_LINE
-	* change V4L2_DV_FL_FIRST_FIELD_EXTRA_LINE value and comments
+	* driver in the MAINTAINERS file
 
 Charles-Antoine Couret (2):
   SDI: add flag for SDI formats and SMPTE 125M definition
   Add GS1662 driver, a video serializer
 
-Charles-Antoine Couret (2):
-  SDI: add flag for SDI formats and SMPTE 125M definition
-  Add GS1662 driver, a video serializer
-
+ MAINTAINERS                               |   7 +
  drivers/media/Kconfig                     |   1 +
  drivers/media/Makefile                    |   2 +-
  drivers/media/spi/Kconfig                 |   9 +
@@ -31,7 +27,7 @@ Charles-Antoine Couret (2):
  drivers/media/v4l2-core/v4l2-dv-timings.c |  11 +-
  include/uapi/linux/v4l2-dv-timings.h      |  12 +
  include/uapi/linux/videodev2.h            |   8 +
- 8 files changed, 511 insertions(+), 5 deletions(-)
+ 9 files changed, 518 insertions(+), 5 deletions(-)
  create mode 100644 drivers/media/spi/Kconfig
  create mode 100644 drivers/media/spi/Makefile
  create mode 100644 drivers/media/spi/gs1662.c

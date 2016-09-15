@@ -1,8 +1,10 @@
-From 75f9d293f5b5ef3d7ba6ecf00dab28307ef53576 Mon Sep 17 00:00:00 2001
+From 7a4a033d30178ee3f6462d5a514564342b803e92 Mon Sep 17 00:00:00 2001
 From: Charles-Antoine Couret <charles-antoine.couret@nexvision.fr>
 Date: Thu, 21 Jul 2016 16:58:19 +0200
-Subject: [PATCH] V4L2: Add documentation for SDI timings and related flags
+Subject: [PATCH v3] V4L2: Add documentation for SDI timings and related flags
 To: linux-media@vger.kernel.org
+
+Describe new needed constants defined by SDI format.
 
 Signed-off-by: Charles-Antoine Couret <charles-antoine.couret@nexvision.fr>
 ---
