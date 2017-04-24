@@ -3,3 +3,6 @@ arecord -f S16_LE -c 1 -r 16000 /mnt/
 
 # To convert a video stream with gstreamer with hardware acceleration of Tegra K1
 gst-launch-0.10 filesrc location=$FILESRC.avi ! avidemux ! "video/x-raw-yuv,width=(int)800,height=(int)600,format=(fourcc)I420" ! nvvidconv ! "video/x-nv-yuv" ! nv_omx_h264enc low-latency=true ! qtmux ! filesink location=$FILEDST.mp4 -e
+
+# Launch Qt application with EGLFS, touscreen support and software renderer
+QMLSCENE_DEVICE=softwarecontext QT_QPA_FB_TSLIB=1 QT_QPA_EGLFS_INTEGRATION=eglfs_x11 qt-demo -platform eglfs
