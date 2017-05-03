@@ -62,7 +62,8 @@ if [ "$1" != "WORK" ]; then
 fi
 
 ## Themes
-dnf -y install \*-backgrounds-gnome solar-backgrounds astronomy-backgrounds gears-backgrounds constantine-backgrounds fedorainfinity-backgrounds desktop-backgrounds-waves neon-backgrounds leonidas\* plymouth-theme-\* bluecurve-gtk-themes bluecurve-cursor-theme bluecurve-icon-theme grub2-starfield-theme grub-customizer $NO_DEVEL $SKIP_MISSING_PACKAGE
+## Alternate wallpapers from Fedora: _\*-backgrounds-extras-gnome_ packages
+dnf -y install \*-backgrounds-gnome \*-backgrounds-stripes-gnome desktop-backgrounds-waves solar-backgrounds leonidas-backgrounds fedorainfinity-backgrounds astronomy-backgrounds gears-backgrounds neon-backgrounds plymouth-theme-\* bluecurve-gtk-themes bluecurve-cursor-theme bluecurve-icon-theme grub2-starfield-theme grub-customizer $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## Personal language
 dnf install langpacks-en langpacks-$LANGUAGE
