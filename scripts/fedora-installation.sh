@@ -50,6 +50,7 @@ dnf -y install doxygen vim-common texinfo makeinfo yacc bison flex automake aclo
 ## Yocto
 dnf install diffstat chrpath socat SDL-devel xterm docbook-style-dsssl docbook-style-xsl docbook-dtds docbook-utils fop libxslt dblatex xmlto xsltproc autoconf automake libtool glib2-devel libarchive-devel GitPython dosfstools e2fsprogs gawk mtools parted mtd-utils mtd-utils-ubi libusb-devel zlib.i686 lzo.i686 libuuid.i686 libusbx.i686 $SKIP_MISSING_PACKAGE
 
+
 ## Qt development + Sailfish OS
 dnf -y install qt5-linguist qt5-designer qt-creator qt5-*-devel VirtualBox $SKIP_MISSING_PACKAGE
 
@@ -80,10 +81,19 @@ dnf install langpacks-en langpacks-$LANGUAGE
 plymouth-set-default-theme charge
 /usr/libexec/plymouth/plymouth-update-initrd
 
+systemctl disable packagekit packagekit-offline-update livesys livesys-late lvm2-monitor
+systemctl enable libvirtd
+
 # Kernel config
 echo "kernel.sysrq = 1
 vm.swappiness = 15
-fs.inotify.max_user_watches = 524288" > /etc/sysctl.conf
+" > /etc/sysctl.conf
+
+systemctl mask libvirtd.service
+systemctl mask ModemManager.service
+systemctl mask cups.service cups.socket cups.path
+systemctl disable multipathd.service
+
 
 # Boot option (add acpi compatibility for backlight) and add theme
 sed -i 's/^GRUB_CMDLINE_LINUX="\([^:]*\)"/GRUB_CMDLINE_LINUX="\1 acpi_backlight=vendor"' /etc/default/grub
