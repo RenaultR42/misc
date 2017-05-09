@@ -48,7 +48,7 @@ dnf -y install gcc gcc-c++ wget nasm subversion git-gui git-tools git-email open
 dnf -y install doxygen vim-common texinfo makeinfo yacc bison flex automake aclocal autoconf glibc.i686 $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## Yocto
-dnf install diffstat chrpath socat SDL-devel xterm docbook-style-dsssl docbook-style-xsl docbook-dtds docbook-utils fop libxslt dblatex xmlto xsltproc autoconf automake libtool glib2-devel libarchive-devel GitPython dosfstools e2fsprogs gawk mtools parted mtd-utils mtd-utils-ubi libusb-devel zlib.i686 lzo.i686 libuuid.i686 libusbx.i686 $SKIP_MISSING_PACKAGE
+dnf install diffstat chrpath socat SDL-devel xterm docbook-style-dsssl docbook-style-xsl docbook-dtds docbook-utils fop libxslt dblatex xmlto xsltproc autoconf automake libtool glib2-devel libarchive-devel GitPython dosfstools e2fsprogs gawk mtools parted mtd-utils mtd-utils-ubi libusb-devel perl-Crypt-OpenSSL-Bignum perl-bignum zlib.i686 lzo.i686 libuuid.i686 libusbx.i686 $SKIP_MISSING_PACKAGE
 
 
 ## Qt development + Sailfish OS
