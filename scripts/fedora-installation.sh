@@ -48,11 +48,11 @@ dnf -y install gcc gcc-c++ wget nasm subversion git-gui git-tools git-email open
 dnf -y install doxygen vim-common texinfo makeinfo yacc bison flex automake aclocal autoconf glibc.i686 $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## Yocto
-dnf install diffstat chrpath socat SDL-devel xterm docbook-style-dsssl docbook-style-xsl docbook-dtds docbook-utils fop libxslt dblatex xmlto xsltproc autoconf automake libtool glib2-devel libarchive-devel GitPython dosfstools e2fsprogs gawk mtools parted mtd-utils mtd-utils-ubi libusb-devel perl-Crypt-OpenSSL-Bignum perl-bignum zlib.i686 lzo.i686 libuuid.i686 libusbx.i686 $SKIP_MISSING_PACKAGE
+dnf install -y diffstat chrpath socat SDL-devel xterm docbook-style-dsssl docbook-style-xsl docbook-dtds docbook-utils fop libxslt dblatex xmlto xsltproc autoconf automake libtool glib2-devel libarchive-devel GitPython python3-GitPython dosfstools e2fsprogs gawk mtools parted mtd-utils mtd-utils-ubi libusb-devel perl-Crypt-OpenSSL-Bignum perl-bignum pseudo cryptopp-devel.i686 glibc-devel.i686 libusb-devel.i686 libuuid-devel.i686 lzo-devel.i686 lzop zlib-devel.i686 zlib.i686 lzo.i686 libuuid.i686 libusbx.i686 $SKIP_MISSING_PACKAGE
 
 
 ## Qt development + Sailfish OS
-dnf -y install qt5-linguist qt5-designer qt-creator qt5-*-devel VirtualBox $SKIP_MISSING_PACKAGE
+dnf -y install qt5-linguist qt5-designer qt-creator qt5-*-devel qt5-qtbase-devel.i686 VirtualBox $SKIP_MISSING_PACKAGE
 
 ## Misc
 dnf -y install gajim easytag youtube-dl policycoreutils-gui blivet-gui beignet soundconverter GraphicsMagick theora-tools crack john freetype-freeworld man-pages dejavu\* acpi acpid tor acpitool screen system-config-\* linux_logo fedora-business-cards fedora-easy-karma fedora-packager mediawriter lm_sensors bash-completion bash-doc dvipng libvirt\* qemu\* virt-manager accountsdialog gparted samba-client p7zip\* rpmdevtools nmap wireshark-gtk iperf indent powertop htop iotop bpython python-farsight python-crypto python-virtualenv python-virtualenvwrapper python-pip fedmsg\* gnome-\*fedmsg mediainfo-gui libva-utils vdpauinfo libva-vdpau-driver libva-intel-driver $NO_DEVEL $SKIP_MISSING_PACKAGE
@@ -91,7 +91,6 @@ vm.swappiness = 15
 
 systemctl mask libvirtd.service
 systemctl mask ModemManager.service
-systemctl mask cups.service cups.socket cups.path
 systemctl disable multipathd.service
 
 
