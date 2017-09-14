@@ -31,11 +31,11 @@ dnf -y upgrade
 
 ## Base
 dnf -y groupinstall "Fedora Workstation"
-dnf -y install dnf-plugin-system-upgrade deja-dup vlc mplayer mplayer-gui mencoder thunderbird\* lame gstreamer\*-plugin*\ gstreamer1-libav gstreamer1-vaapi ffmpeg gpm xvidcore empathy transmission-gtk --exclude=\*docs $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install dnf-plugin-system-upgrade deja-dup vlc mplayer mplayer-gui mencoder thunderbird\* lame gstreamer\*-plugin\* gstreamer1-libav gstreamer1-vaapi ffmpeg gpm xvidcore empathy transmission-gtk --exclude=\*docs $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## GNOME
 dnf -y groupinstall "Environnement de bureau standard"
-dnf -y install gnome-tweak-tool gnome-weather gitg epiphany swell-foop hitori tali iagno lightsoff quadrapassel four-in-a-row gnome-tetravex gnome-nibbles gnome-taquin gnome-mahjongg gnome-robots gnome-sudoku five-or-more gnome-maps gnome-chess gnome-mines gnome-clocks gnome-boxes polari gnome-music gnome-photos ghex ekiga gnome-tweak-tool gnome-hearts simple-scan gnome-mime-data dconf-editor \*gtkspell\* pygtksourceview\* gnome-doc-utils control-center\* evince\* gnome-user\* gnome-system\* guake gnome-activity-journal gnome-power-manager verbiste-gnome gtg gnome-2048 gnome-klotski gnome-battery-bench gnome-builder gnome-common gnome-dictionary tracker-preferences gedit-plugins gedit-code-assistance gnome-sound-recorder gnome-todo gnome-themes-legacy gnome-shell-extension-auto-move-windows gnome-shell-extension-activities-configurator gnome-shell-extension-freon gnome-shell-theme-* gnome-multi-writer $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install gnome-tweak-tool gnome-weather gitg epiphany swell-foop hitori tali iagno lightsoff quadrapassel four-in-a-row gnome-tetravex gnome-nibbles gnome-taquin gnome-mahjongg gnome-robots gnome-sudoku five-or-more gnome-maps gnome-chess gnome-mines gnome-clocks gnome-boxes polari gnome-music gnome-photos ghex ekiga gnome-tweak-tool gnome-hearts simple-scan gnome-mime-data dconf-editor \*gtkspell\* pygtksourceview\* gnome-doc-utils control-center\* evince\* gnome-user\* gnome-system\* guake gnome-activity-journal gnome-power-manager verbiste-gnome gtg gnome-2048 gnome-klotski gnome-battery-bench gnome-builder gnome-common gnome-dictionary tracker-preferences gedit-plugin* gedit-code-assistance gnome-sound-recorder gnome-todo gnome-themes-legacy gnome-shell-extension-auto-move-windows gnome-shell-extension-activities-configurator gnome-shell-extension-freon gnome-shell-theme-* gnome-multi-writer $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## LibreOffice
 dnf -y install libreoffice-calc libreoffice-writer libreoffice-impress libreoffice-math libreoffice-base libreoffice-draw libreoffice-pdfimport $SKIP_MISSING_PACKAGE
@@ -55,7 +55,7 @@ dnf install -y diffstat chrpath socat SDL-devel xterm docbook-style-dsssl docboo
 dnf -y install qt5-linguist qt5-designer qt-creator qt5-*-devel qt5-qtbase-devel.i686 VirtualBox $SKIP_MISSING_PACKAGE
 
 ## Misc
-dnf -y install gajim easytag youtube-dl policycoreutils-gui blivet-gui beignet soundconverter GraphicsMagick theora-tools crack john freetype-freeworld man-pages dejavu\* acpi acpid tor acpitool screen system-config-\* linux_logo fedora-business-cards fedora-easy-karma fedora-packager mediawriter lm_sensors bash-completion bash-doc dvipng libvirt\* qemu\* virt-manager accountsdialog gparted samba-client p7zip\* rpmdevtools nmap wireshark-gtk iperf indent powertop htop iotop bpython python-farsight python-crypto python-virtualenv python-virtualenvwrapper python-pip fedmsg\* gnome-\*fedmsg mediainfo-gui libva-utils vdpauinfo libva-vdpau-driver libva-intel-driver $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install gajim easytag youtube-dl policycoreutils-gui blivet-gui beignet soundconverter GraphicsMagick theora-tools crack john freetype-freeworld man-pages dejavu\* acpi acpid tor acpitool screen system-config-\* linux_logo fedora-business-cards fedora-easy-karma fedora-packager mediawriter lm_sensors bash-completion bash-doc dvipng libvirt\* qemu\* virt-manager accountsdialog gparted samba-client p7zip\* rpmdevtools nmap wireshark-gtk iperf indent powertop htop iotop bpython python-farsight python-crypto python-virtualenv python-virtualenvwrapper python-pip fedmsg\* gnome-\*fedmsg mediainfo-gui libva-utils vdpauinfo libva-vdpau-driver libva-intel-driver pcsc-lite-devel libproxy-devel libcurl-devel $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## Games
 if [ "$1" != "WORK" ]; then
