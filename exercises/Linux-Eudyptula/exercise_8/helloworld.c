@@ -1,5 +1,6 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/mutex.h>
 #include <linux/debugfs.h>
 #include <linux/fs.h>
 #include <linux/jiffies.h>
@@ -9,8 +10,11 @@
 #define EUDYPTULA_ID	"c9680074cfb9"
 #define BUFFER_SIZE	1024
 
-static struct dentry *dir, *id_file, *jiffies_file;
-static char id_value[BUFFER_SIZE];
+static struct dentry *dir, *id_file, *jiffies_file, *foo_file;
+static char id_value[BUFFER_SIZE], foo_value[PAGE_SIZE];
+
+/* To avoid concurrent access. One request allowed in the same time. */
+static DEFINE_MUTEX(debug_foo_mutex);
 
 static ssize_t debug_id_reader(struct file *fp, char __user *buf,
 			size_t len, loff_t *ppos)
@@ -40,6 +44,39 @@ static const struct file_operations fops_id = {
 	.write = debug_id_writer,
 };
 
+static ssize_t debug_foo_reader(struct file *fp, char __user *buf,
+			size_t len, loff_t *ppos)
+{
+	int ret;
+	mutex_lock(&debug_foo_mutex);
+
+	ret = simple_read_from_buffer(buf, len, ppos, foo_value,
+		strlen(foo_value));
+	mutex_unlock(&debug_foo_mutex);
+	return ret;
+}
+
+static ssize_t debug_foo_writer(struct file *fp, const char __user *buf,
+			size_t len, loff_t *ppos)
+{
+	int ret;
+	mutex_lock(&debug_foo_mutex);
+
+	if (len >= BUFFER_SIZE)
+		return -EINVAL;
+
+	ret = simple_write_to_buffer(foo_value, PAGE_SIZE - 1, ppos, buf, len);
+
+	foo_value[ret] = '\0';
+	mutex_unlock(&debug_foo_mutex);
+	return ret;
+}
+
+static const struct file_operations fops_foo = {
+	.read = debug_foo_reader,
+	.write = debug_foo_writer,
+};
+
 static int init_debug(void)
 {
 	dir = debugfs_create_dir("eudyptula", NULL);
@@ -52,6 +89,12 @@ static int init_debug(void)
 	jiffies_file = debugfs_create_u64("jiffies", 0444, dir, (u64 *)&jiffies);
 	if (!jiffies_file) {
 		pr_err("Error creating jiffies_file file");
+		return -ENODEV;
+	}
+
+	foo_file = debugfs_create_file("foo", 0644, dir, foo_value, &fops_foo);
+	if (!foo_file) {
+		pr_err("Error creating foo_file file");
 		return -ENODEV;
 	}
 
