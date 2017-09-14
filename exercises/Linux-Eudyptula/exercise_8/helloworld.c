@@ -2,13 +2,14 @@
 #include <linux/kernel.h>
 #include <linux/debugfs.h>
 #include <linux/fs.h>
+#include <linux/jiffies.h>
 
 #define DRIVER_AUTHOR	"Charles-Antoine Couret"
 #define DRIVER_DESC	"My First module Eudyptula"
 #define EUDYPTULA_ID	"c9680074cfb9"
 #define BUFFER_SIZE	1024
 
-static struct dentry *dir, *id_file;
+static struct dentry *dir, *id_file, *jiffies_file;
 static char id_value[BUFFER_SIZE];
 
 static ssize_t debug_id_reader(struct file *fp, char __user *buf,
@@ -45,6 +46,12 @@ static int init_debug(void)
 	id_file = debugfs_create_file("id", 0666, dir, id_value, &fops_id);
 	if (!id_file) {
 		pr_err("Error creating id_file file");
+		return -ENODEV;
+	}
+
+	jiffies_file = debugfs_create_u64("jiffies", 0444, dir, (u64 *)&jiffies);
+	if (!jiffies_file) {
+		pr_err("Error creating jiffies_file file");
 		return -ENODEV;
 	}
 
