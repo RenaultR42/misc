@@ -31,31 +31,36 @@ dnf -y upgrade
 
 ## Base
 dnf -y groupinstall "Fedora Workstation"
-dnf -y install dnf-plugin-system-upgrade deja-dup vlc mplayer mplayer-gui mencoder thunderbird\* lame gstreamer\*-plugin\* gstreamer1-libav gstreamer1-vaapi ffmpeg gpm xvidcore empathy transmission-gtk --exclude=\*docs $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install dnf-plugin-system-upgrade deja-dup vlc mplayer mplayer-gui mencoder thunderbird\* lame gstreamer\*-plugin*\ gstreamer1-libav gstreamer1-vaapi ffmpeg pipewire gpm xvidcore empathy transmission-gtk --exclude=\*docs $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## GNOME
 dnf -y groupinstall "Environnement de bureau standard"
 dnf -y install gnome-tweak-tool gnome-weather gitg epiphany swell-foop hitori tali iagno lightsoff quadrapassel four-in-a-row gnome-tetravex gnome-nibbles gnome-taquin gnome-mahjongg gnome-robots gnome-sudoku five-or-more gnome-maps gnome-chess gnome-mines gnome-clocks gnome-boxes polari gnome-music gnome-photos ghex ekiga gnome-tweak-tool gnome-hearts simple-scan gnome-mime-data dconf-editor \*gtkspell\* pygtksourceview\* gnome-doc-utils control-center\* evince\* gnome-user\* gnome-system\* guake gnome-activity-journal gnome-power-manager verbiste-gnome gtg gnome-2048 gnome-klotski gnome-battery-bench gnome-builder gnome-common gnome-dictionary tracker-preferences gedit-plugin* gedit-code-assistance gnome-sound-recorder gnome-todo gnome-themes-legacy gnome-shell-extension-auto-move-windows gnome-shell-extension-activities-configurator gnome-shell-extension-freon gnome-shell-theme-* gnome-multi-writer $NO_DEVEL $SKIP_MISSING_PACKAGE
 
-## LibreOffice
-dnf -y install libreoffice-calc libreoffice-writer libreoffice-impress libreoffice-math libreoffice-base libreoffice-draw libreoffice-pdfimport $SKIP_MISSING_PACKAGE
+## Hardware
+dnf -y install beignet libclc vulkan libva-utils vdpauinfo libva-vdpau-driver libva-intel-driver hplip-gui pcsc-lite-devel libproxy-devel libcurl-devel
+
+## Office
+dnf -y install libreoffice-calc libreoffice-writer libreoffice-impress libreoffice-math libreoffice-base libreoffice-draw libreoffice-pdfimport kchmviewer chm2pdf gimp dia $SKIP_MISSING_PACKAGE
 
 ## Development
 dnf -y groupinstall "Outils de développement et bibliothèques pour C" "Outils système"
 dnf -y install gcc gcc-c++ wget nasm subversion git-gui git-tools git-email openssl-devel ncurses-devel ncurses-compat-libs glibc-devel linuxdoc\* kernel-tools kernel-doc kernel-devel kernel-headers python3-sphinx rst2pdf i2c-tools minicom picocom $SKIP_MISSING_PACKAGE
 
 ## Buildroot / ptxdist
-dnf -y install doxygen vim-common texinfo makeinfo yacc bison flex automake aclocal autoconf glibc.i686 $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install doxygen vim-common texinfo makeinfo yacc bison flex automake aclocal autoconf glibc{,-devel}.i686 $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## Yocto
-dnf install -y diffstat chrpath socat SDL-devel xterm docbook-style-dsssl docbook-style-xsl docbook-dtds docbook-utils fop libxslt dblatex xmlto xsltproc autoconf automake libtool glib2-devel libarchive-devel GitPython python3-GitPython dosfstools e2fsprogs gawk mtools parted mtd-utils mtd-utils-ubi libusb-devel perl-Crypt-OpenSSL-Bignum perl-bignum pseudo cryptopp-devel.i686 glibc-devel.i686 libusb-devel.i686 libuuid-devel.i686 lzo-devel.i686 lzop zlib-devel.i686 zlib.i686 lzo.i686 libuuid.i686 libusbx.i686 $SKIP_MISSING_PACKAGE
+dnf -y install diffstat chrpath socat SDL-devel xterm docbook-style-dsssl docbook-style-xsl docbook-dtds docbook-utils fop libxslt dblatex xmlto xsltproc autoconf automake libtool glib2-devel libarchive-devel GitPython dosfstools e2fsprogs gawk mtools parted mtd-utils mtd-utils-ubi libusb-devel perl-Crypt-OpenSSL-Bignum perl-bignum cryptopp-devel.i686 libusb-devel.i686 zlib{,-devel}.i686 lzo{,-devel}.i686 libuuid{,-devel}.i686 libusbx{,-devel}.i686 $SKIP_MISSING_PACKAGE
 
+## Rust development
+dnf -y install rust rust-doc rust-gdb rust-lldb
 
 ## Qt development + Sailfish OS
-dnf -y install qt5-linguist qt5-designer qt-creator qt5-*-devel qt5-qtbase-devel.i686 VirtualBox $SKIP_MISSING_PACKAGE
+dnf -y install qt5-linguist qt5-designer qt-creator qt5-*-devel qt-creator-translations VirtualBox $SKIP_MISSING_PACKAGE
 
 ## Misc
-dnf -y install gajim easytag youtube-dl policycoreutils-gui blivet-gui beignet soundconverter GraphicsMagick theora-tools crack john freetype-freeworld man-pages dejavu\* acpi acpid tor acpitool screen system-config-\* linux_logo fedora-business-cards fedora-easy-karma fedora-packager mediawriter lm_sensors bash-completion bash-doc dvipng libvirt\* qemu\* virt-manager accountsdialog gparted samba-client p7zip\* rpmdevtools nmap wireshark-gtk iperf indent powertop htop iotop bpython python-farsight python-crypto python-virtualenv python-virtualenvwrapper python-pip fedmsg\* gnome-\*fedmsg mediainfo-gui libva-utils vdpauinfo libva-vdpau-driver libva-intel-driver pcsc-lite-devel libproxy-devel libcurl-devel $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install gajim easytag youtube-dl policycoreutils-gui blivet-gui soundconverter GraphicsMagick theora-tools crack john freetype-freeworld man-pages dejavu\* acpi acpid tor acpitool screen system-config-\* linux_logo fedora-business-cards fedora-easy-karma fedora-packager mediawriter lm_sensors bash-completion bash-doc dvipng libvirt\* qemu\* virt-manager accountsdialog gparted samba-client p7zip\* rpmdevtools nmap wireshark-gtk iperf indent powertop htop iotop bpython python-farsight python-crypto python-virtualenv python-virtualenvwrapper python-pip fedmsg\* gnome-\*fedmsg mediainfo-gui cloc $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## Games
 if [ "$1" != "WORK" ]; then
@@ -64,7 +69,7 @@ fi
 
 ## Themes
 ## Alternate wallpapers from Fedora: _\*-backgrounds-extras-gnome gears-backgrounds neon-backgrounds leonidas-backgrounds-landscape_ packages
-dnf -y install \*-backgrounds-gnome \*-backgrounds-stripes-gnome desktop-backgrounds-waves solar-backgrounds leonidas-backgrounds leonidas-backgrounds-lion fedorainfinity-backgrounds plymouth-theme-\* bluecurve-gtk-themes bluecurve-cursor-theme bluecurve-icon-theme grub2-starfield-theme grub-customizer $NO_DEVEL $SKIP_MISSING_PACKAGE
+dnf -y install \*-backgrounds-animated \*-backgrounds-gnome \*-backgrounds-stripes-gnome desktop-backgrounds-waves solar-backgrounds leonidas-backgrounds leonidas-backgrounds-lion fedorainfinity-backgrounds plymouth-theme-\* bluecurve-gtk-themes bluecurve-cursor-theme bluecurve-icon-theme grub2-starfield-theme grub-customizer $NO_DEVEL $SKIP_MISSING_PACKAGE
 
 ## Personal language
 dnf install langpacks-en langpacks-$LANGUAGE
