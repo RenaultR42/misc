@@ -14,3 +14,6 @@ dnf install dnf-plugin-system-upgrade
 dnf upgrade && dnf clean all
 dnf system-upgrade download --releasever=$VERSION
 dnf system-upgrade reboot
+
+# Extract audio from video file and convert it to Vorbis
+ffmpeg -i "${filename}" -vn -acodec libvorbis -y "${filename}".ogg
