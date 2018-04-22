@@ -10,7 +10,7 @@
 #define EUDYPTULA_ID	"c9680074cfb9"
 #define BUFFER_SIZE	1024
 
-static struct dentry *dir, *id_file, *jiffies_file, *foo_file;
+static struct dentry *dir;
 static char id_value[BUFFER_SIZE], foo_value[PAGE_SIZE];
 
 /* To avoid concurrent access. One request allowed in the same time. */
@@ -20,7 +20,7 @@ static ssize_t debug_id_reader(struct file *fp, char __user *buf,
 			size_t len, loff_t *ppos)
 {
 	return simple_read_from_buffer(buf, len, ppos, EUDYPTULA_ID,
-		strlen(EUDYPTULA_ID));
+				strlen(EUDYPTULA_ID));
 }
 
 static ssize_t debug_id_writer(struct file *fp, const char __user *buf,
@@ -80,20 +80,17 @@ static const struct file_operations fops_foo = {
 static int init_debug(void)
 {
 	dir = debugfs_create_dir("eudyptula", NULL);
-	id_file = debugfs_create_file("id", 0666, dir, id_value, &fops_id);
-	if (!id_file) {
+	if (!debugfs_create_file("id", 0666, dir, id_value, &fops_id)) {
 		pr_err("Error creating id_file file");
 		return -ENODEV;
 	}
 
-	jiffies_file = debugfs_create_u64("jiffies", 0444, dir, (u64 *)&jiffies);
-	if (!jiffies_file) {
+	if (!debugfs_create_u64("jiffies", 0444, dir, (u64 *)&jiffies)) {
 		pr_err("Error creating jiffies_file file");
 		return -ENODEV;
 	}
 
-	foo_file = debugfs_create_file("foo", 0644, dir, foo_value, &fops_foo);
-	if (!foo_file) {
+	if (!debugfs_create_file("foo", 0644, dir, foo_value, &fops_foo)) {
 		pr_err("Error creating foo_file file");
 		return -ENODEV;
 	}
@@ -112,3 +109,5 @@ module_exit(cleanup_debug);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
+
+

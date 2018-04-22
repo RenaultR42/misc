@@ -1,0 +1,32 @@
+Signed-off-by: Charles-Antoine Couret <renault@fedoraproject.org>
+---
+ helloworld.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/helloworld.c b/helloworld.c
+index 64cc2eb..55eb498 100644
+--- a/helloworld.c
++++ b/helloworld.c
+@@ -2,6 +2,7 @@
+ #include <linux/kernel.h>
+ #include <linux/debugfs.h>
+ #include <linux/fs.h>
++#include <linux/jiffies.h>
+ 
+ #define DRIVER_AUTHOR	"Charles-Antoine Couret"
+ #define DRIVER_DESC	"My First module Eudyptula"
+@@ -47,6 +48,11 @@ static int init_debug(void)
+ 		return -ENODEV;
+ 	}
+ 
++	if (!debugfs_create_u64("jiffies", 0444, dir, (u64 *)&jiffies)) {
++		pr_err("Error creating jiffies_file file");
++		return -ENODEV;
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+2.14.1
+

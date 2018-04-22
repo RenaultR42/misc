@@ -1,0 +1,83 @@
+Signed-off-by: Charles-Antoine Couret <renault@fedoraproject.org>
+---
+ helloworld.c | 47 ++++++++++++++++++++++-
+ 1 file changed, 45 insertions(+), 2 deletions(-)
+
+diff --git a/helloworld.c b/helloworld.c
+index 55eb498..ac9a055 100644
+--- a/helloworld.c
++++ b/helloworld.c
+@@ -1,5 +1,6 @@
+ #include <linux/module.h>
+ #include <linux/kernel.h>
++#include <linux/mutex.h>
+ #include <linux/debugfs.h>
+ #include <linux/fs.h>
+ #include <linux/jiffies.h>
+@@ -10,7 +11,10 @@
+ #define BUFFER_SIZE	1024
+ 
+ static struct dentry *dir;
+-static char id_value[BUFFER_SIZE];
++static char id_value[BUFFER_SIZE], foo_value[PAGE_SIZE];
++
++/* To avoid concurrent access. One request allowed in the same time. */
++static DEFINE_MUTEX(debug_foo_mutex);
+ 
+ static ssize_t debug_id_reader(struct file *fp, char __user *buf,
+ 			size_t len, loff_t *ppos)
+@@ -40,6 +44,39 @@ static const struct file_operations fops_id = {
+ 	.write = debug_id_writer,
+ };
+ 
++static ssize_t debug_foo_reader(struct file *fp, char __user *buf,
++			size_t len, loff_t *ppos)
++{
++	int ret;
++
++	mutex_lock(&debug_foo_mutex);
++	ret = simple_read_from_buffer(buf, len, ppos, foo_value,
++		strlen(foo_value));
++	mutex_unlock(&debug_foo_mutex);
++	return ret;
++}
++
++static ssize_t debug_foo_writer(struct file *fp, const char __user *buf,
++			size_t len, loff_t *ppos)
++{
++	int ret;
++
++	mutex_lock(&debug_foo_mutex);
++	if (len >= BUFFER_SIZE)
++		return -EINVAL;
++
++	ret = simple_write_to_buffer(foo_value, PAGE_SIZE - 1, ppos, buf, len);
++
++	foo_value[ret] = '\0';
++	mutex_unlock(&debug_foo_mutex);
++	return ret;
++}
++
++static const struct file_operations fops_foo = {
++	.read = debug_foo_reader,
++	.write = debug_foo_writer,
++};
++
+ static int init_debug(void)
+ {
+ 	dir = debugfs_create_dir("eudyptula", NULL);
+@@ -53,6 +90,11 @@ static int init_debug(void)
+ 		return -ENODEV;
+ 	}
+ 
++	if (!debugfs_create_file("foo", 0644, dir, foo_value, &fops_foo)) {
++		pr_err("Error creating foo_file file");
++		return -ENODEV;
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+2.14.1
+
