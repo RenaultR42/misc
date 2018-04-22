@@ -1,0 +1,159 @@
+From 3e6926c4cc7b87348b44d36e382044901f6b0351 Mon Sep 17 00:00:00 2001
+From: Charles-Antoine Couret <charles-antoine.couret@essensium.com>
+Date: Fri, 22 Dec 2017 14:37:11 +0100
+Subject: [PATCH v4] downloader: add option to send Basic Auth info
+To: swupdate@googlegroups.com
+
+This option is needed if an update is protected by username / password to avoid
+that anybody can download this update file.
+
+This method is used by Cumulocity infrastructure for example to deploy updates.
+
+Signed-off-by: Charles-Antoine Couret <charles-antoine.couret@essensium.com>
+---
+ corelib/downloader.c                | 34 +++++++++++++++++++++++++++-------
+ doc/source/swupdate.rst             |  2 ++
+ examples/configuration/swupdate.cfg |  4 ++++
+ 3 files changed, 33 insertions(+), 7 deletions(-)
+
+diff --git a/corelib/downloader.c b/corelib/downloader.c
+index 27bb4e8..f000692 100644
+--- a/corelib/downloader.c
++++ b/corelib/downloader.c
+@@ -62,6 +62,7 @@ struct dwl_options {
+ 	char *url;
+ 	unsigned int retries;
+ 	unsigned int timeout;
++	char *auth;
+ };
+ 
+ /* notify download progress each second */
+@@ -76,6 +77,7 @@ static struct option long_options[] = {
+     {"url", required_argument, NULL, 'u'},
+     {"retries", required_argument, NULL, 'r'},
+     {"timeout", required_argument, NULL, 't'},
++    {"authentification", required_argument, NULL, 'a'},
+     {NULL, 0, NULL, 0}};
+ 
+ 
+@@ -200,7 +202,7 @@ static void set_option_common(CURL *curl_handle,
+  * for that, the -i option is used.
+  */
+ static RECOVERY_STATUS download_from_url(char *image_url, unsigned int retries,
+-					unsigned long lowspeed_time)
++					unsigned long lowspeed_time, char *auth)
+ {
+ 	CURL *curl_handle;
+ 	CURLcode res = CURLE_GOT_NOTHING;
+@@ -253,6 +255,12 @@ static RECOVERY_STATUS download_from_url(char *image_url, unsigned int retries,
+ 		return FAILURE;
+ 	}
+ 
++	/* Set Authentification */
++	if (auth && curl_easy_setopt(curl_handle, CURLOPT_USERPWD, auth) != CURLE_OK) {
++		TRACE("Runs out of memory: serious internal error");
++		return FAILURE;
++	}
++
+ 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data);
+ 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &fd);
+ 	set_option_common(curl_handle, lowspeed_time, &progress);
+@@ -314,6 +322,13 @@ static int download_settings(void *elem, void  __attribute__ ((__unused__)) *dat
+ 		SETSTRING(opt->url, tmp);
+ 	}
+ 
++	GET_FIELD_STRING(LIBCFG_PARSER, elem, "authentication", tmp);
++	if (strlen(tmp)) {
++		SETSTRING(opt->auth, tmp);
++	} else {
++		opt->auth = NULL;
++	}
++
+ 	get_field(LIBCFG_PARSER, elem, "retries",
+ 		&opt->retries);
+ 	get_field(LIBCFG_PARSER, elem, "timeout",
+@@ -327,10 +342,11 @@ void download_print_help(void)
+ 	fprintf(
+ 	    stdout,
+ 	    "\tdownload arguments (mandatory arguments are marked with '*'):\n"
+-	    "\t  -u, --url <url>   * <url> is a link to the .swu update image\n"
+-	    "\t  -r, --retries       number of retries (resumed download) if connection\n"
+-	    "\t                      is broken (0 means indefinitely retries) (default: %d)\n"
+-	    "\t  -t, --timeout       timeout to check if a connection is lost (default: %d)\n",
++	    "\t  -u, --url <url>      * <url> is a link to the .swu update image\n"
++	    "\t  -r, --retries          number of retries (resumed download) if connection\n"
++	    "\t                         is broken (0 means indefinitely retries) (default: %d)\n"
++	    "\t  -t, --timeout          timeout to check if a connection is lost (default: %d)\n"
++	    "\t  -a, --authentication   authentification information as username:password\n",
+ 	    DL_DEFAULT_RETRIES, DL_LOWSPEED_TIME);
+ }
+ 
+@@ -345,6 +361,7 @@ int start_download(const char *fname, int argc, char *argv[])
+ 
+ 	options.retries = DL_DEFAULT_RETRIES;
+ 	options.timeout = DL_LOWSPEED_TIME;
++	options.auth = NULL;
+ 
+ 	if (fname) {
+ 		read_module_settings(fname, "download", download_settings,
+@@ -353,7 +370,7 @@ int start_download(const char *fname, int argc, char *argv[])
+ 
+ 	/* reset to optind=1 to parse download's argument vector */
+ 	optind = 1;
+-	while ((choice = getopt_long(argc, argv, "t:u:r:",
++	while ((choice = getopt_long(argc, argv, "t:u:r:a:",
+ 				     long_options, NULL)) != -1) {
+ 		switch (choice) {
+ 		case 't':
+@@ -362,6 +379,9 @@ int start_download(const char *fname, int argc, char *argv[])
+ 		case 'u':
+ 			SETSTRING(options.url, optarg);
+ 			break;
++		case 'a':
++			SETSTRING(options.auth, optarg);
++			break;
+ 		case 'r':
+ 			options.retries = strtoul(optarg, NULL, 10);
+ 			break;
+@@ -379,7 +399,7 @@ int start_download(const char *fname, int argc, char *argv[])
+ 	 */
+ 	for (attempt = 0;; attempt++) {
+ 		result = download_from_url(options.url, options.retries,
+-						options.timeout);
++						options.timeout, options.auth);
+ 		if (result != FAILURE) {
+ 			ipc_message msg;
+ 			if (ipc_postupdate(&msg) != 0) {
+diff --git a/doc/source/swupdate.rst b/doc/source/swupdate.rst
+index 138e0c4..8e5ca40 100644
+--- a/doc/source/swupdate.rst
++++ b/doc/source/swupdate.rst
+@@ -534,6 +534,8 @@ Command line parameters
+ | -t <timeout>| integer  | Timeout for connection lost when           |
+ |             |          | downloading                                |
+ +-------------+----------+--------------------------------------------+
++| -a <usr:pwd>| string   | Send user and password for Basic Auth      |
+++-------------+----------+--------------------------------------------+
+ 
+ 
+ systemd Integration
+diff --git a/examples/configuration/swupdate.cfg b/examples/configuration/swupdate.cfg
+index f9366fd..5c9e122 100644
+--- a/examples/configuration/swupdate.cfg
++++ b/examples/configuration/swupdate.cfg
+@@ -48,8 +48,12 @@ globals :
+ #			  it is the number of seconds that can be accepted without
+ #			  receiving any packets. If it elapses, the connection is
+ #			  considered broken.
++# authentication	: string
++#			  credentials needed to get software if server
++#			  enables Basic Auth to allow this downloading
+ download :
+ {
++	authentication = "user:password";
+ 	retries = 3;
+ 	timeout = 1800;
+ 	url = "http://example.com/software.swu";
+-- 
+2.14.3
+

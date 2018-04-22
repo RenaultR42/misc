@@ -7,4 +7,4 @@ repo download -c cvms/dau-apps 1147/10 1216
 
 ## Prepare patch with specific commit to send by email
 git format-patch -s --cover-letter --to netdev@vger.kernel.org HEAD~4
-git send-email *.patch
+git send-email --smtp-encryption=tls --smtp-user=<user> --smtp-server=<host> --smtp-server-port=587 *.patch
